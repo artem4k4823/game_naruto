@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Naruto: Shinobi Chronicles 3D</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Outfit:wght@400;600;800;900&family=Russo+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://esm.sh/three@0.160.0",
+      "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <!-- 3D Canvas Container -->
+  <div id="game-container"></div>
+
+  <!-- Anime Speed Lines / Action Overlay -->
+  <canvas id="fx-canvas"></canvas>
+
+  <!-- Anime UI / HUD Overlay -->
+  <div id="hud">
+    <!-- Top Left: Naruto Status -->
+    <div class="player-card">
+      <div class="avatar-frame">
+        <div id="avatar-img" class="avatar-naruto"></div>
+        <div class="ninja-rank-tag">GENIN</div>
+      </div>
+      <div class="bars-container">
+        <div class="bar-header">
+          <span class="shinobi-name">NARUTO UZUMAKI</span>
+          <span class="hp-text" id="hp-value">500 / 500</span>
+        </div>
+        <!-- Health Bar -->
+        <div class="bar-outer hp-bar">
+          <div class="bar-inner" id="hp-fill" style="width: 100%;"></div>
+          <div class="bar-ghost" id="hp-ghost"></div>
+        </div>
+
+        <!-- Chakra Bar -->
+        <div class="bar-header" style="margin-top: 6px;">
+          <span class="chakra-label">CHAKRA (チャクラ)</span>
+          <span class="chakra-text" id="chakra-value">150 / 150</span>
+        </div>
+        <div class="bar-outer chakra-bar">
+          <div class="bar-inner" id="chakra-fill" style="width: 100%;"></div>
+          <div class="chakra-glow"></div>
+        </div>
+
+        <!-- Kyuubi Mode Meter / Timer -->
+        <div id="kyuubi-status" class="kyuubi-badge hidden">
+          <span class="flame-icon">🔥</span>
+          <span class="kyuubi-text">NINE-TAILS CLOAK: <span id="kyuubi-timer">16s</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Center: Wave & Objective Banner -->
+    <div class="wave-banner">
+      <div class="wave-title" id="wave-title">WAVE 1: SHINOBI INVASION</div>
+      <div class="wave-objective">
+        <span>VILLAINS REMAINING: </span>
+        <span class="highlight-num" id="enemies-count">0</span>
+      </div>
+    </div>
+
+    <!-- Top Right: Stats & Controls Quick Info -->
+    <div class="top-right-panel">
+      <div class="stat-badge">
+        <span class="stat-icon">⚔️</span>
+        <span class="stat-val" id="kill-count">0 K.O.</span>
+      </div>
+      <div class="stat-badge">
+        <span class="stat-icon">⭐</span>
+        <span class="stat-val" id="score-val">0 PTS</span>
+      </div>
+      <div class="volume-panel" id="volume-panel">
+        <button id="btn-audio" class="hud-btn" title="Включить / выключить звук">🔊</button>
+        <div class="volume-slider-box">
+          <div class="volume-label-row">
+            <span class="volume-title">ГРОМКОСТЬ</span>
+            <span class="volume-pct" id="volume-pct">60%</span>
+          </div>
+          <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.6" title="Громкость музыки и эффектов" />
+        </div>
+      </div>
+      <button id="btn-help" class="hud-btn" title="Управление и подсказки">❓</button>
+    </div>
+
+    <!-- Center Left: Combo Counter -->
+    <div id="combo-container" class="combo-box hidden">
+      <div class="combo-num" id="combo-count">3</div>
+      <div class="combo-label">HITS!</div>
+      <div class="combo-rating" id="combo-rating">SUGEEE!</div>
+    </div>
+
+    <!-- Center Screen Notifications -->
+    <div id="announcement" class="announcement hidden">
+      <h1 id="announcement-text">ROUND 1</h1>
+    </div>
+
+    <!-- Bottom Center: Jutsu Skill Hotbar -->
+    <div class="skills-dock">
+      <!-- Skill 1: Shuriken -->
+      <div class="skill-slot" id="slot-shuriken" data-skill="shuriken">
+        <div class="skill-icon icon-shuriken">🗡️</div>
+        <div class="skill-key">1 / RMB</div>
+        <div class="skill-cost">6 CH</div>
+        <div class="skill-name">SHURIKEN</div>
+        <div class="cooldown-overlay" id="cd-shuriken"></div>
+      </div>
+
+      <!-- Skill 2: Shadow Clones -->
+      <div class="skill-slot" id="slot-clones" data-skill="clones">
+        <div class="skill-icon icon-clones">👥</div>
+        <div class="skill-key">2 / Q</div>
+        <div class="skill-cost">25 CH</div>
+        <div class="skill-name">KAGE BUNSHIN</div>
+        <div class="cooldown-overlay" id="cd-clones"></div>
+      </div>
+
+      <!-- Skill 3: Rasengan -->
+      <div class="skill-slot" id="slot-rasengan" data-skill="rasengan">
+        <div class="skill-icon icon-rasengan">🌀</div>
+        <div class="skill-key">3 / E</div>
+        <div class="skill-cost">30 CH</div>
+        <div class="skill-name">RASENGAN</div>
+        <div class="cooldown-overlay" id="cd-rasengan"></div>
+      </div>
+
+      <!-- Skill 4: Kyuubi Rage Mode -->
+      <div class="skill-slot ultimate" id="slot-kyuubi" data-skill="kyuubi">
+        <div class="skill-icon icon-kyuubi">🦊</div>
+        <div class="skill-key">4 / R</div>
+        <div class="skill-cost">60 CH</div>
+        <div class="skill-name">NINE-TAILS</div>
+        <div class="cooldown-overlay" id="cd-kyuubi"></div>
+      </div>
+
+      <!-- Skill 5: Chakra Concentration -->
+      <div class="skill-slot passive" id="slot-charge">
+        <div class="skill-icon icon-charge">⚡</div>
+        <div class="skill-key">C</div>
+        <div class="skill-cost">HOLD</div>
+        <div class="skill-name">CHARGE CHAKRA</div>
+      </div>
+    </div>
+
+    <!-- Crosshair Target Ring -->
+    <div id="crosshair">
+      <div class="crosshair-dot"></div>
+      <div class="crosshair-ring"></div>
+    </div>
+
+    <!-- Low HP / Damage Vignette -->
+    <div id="damage-vignette"></div>
+    <div id="chakra-vignette"></div>
+  </div>
+
+  <!-- Start & Controls Modal -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div class="scroll-modal">
+      <div class="scroll-top"></div>
+      <div class="scroll-content">
+        <h1 class="modal-title">NARUTO: SHINOBI 3D</h1>
+        <p class="modal-subtitle">Легендарные битвы в Деревне Скрытого Листа</p>
+
+        <div class="controls-grid">
+          <div class="control-item">
+            <span class="key-badge">Мышь (360°)</span>
+            <span class="key-desc">Обзор камерой (AAA Mouse Look)</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">W A S D</span>
+            <span class="key-desc">Бег Наруто (Ninja Run)</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">Space</span>
+            <span class="key-desc">Прыжок / Двойной прыжок с кувырком (Double Jump)</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">Shift (Зажать)</span>
+            <span class="key-desc">Быстрый бег с чакрой и эффектами (Ninja Sprint)</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">Бег на стену</span>
+            <span class="key-desc">Бег по стенам с чакрой (Wall Run)</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">Крыши зданий</span>
+            <span class="key-desc">Паркур и прыжки по крышам</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">ЛКМ</span>
+            <span class="key-desc">Комбо Тайдзюцу (5 ударов + Финишер)</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">1 / ПКМ</span>
+            <span class="key-desc">Бросок Сюрикенов (6 Чакра)</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">2 / Q</span>
+            <span class="key-desc">Теневые клоны (25 Чакра)</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">3 / E</span>
+            <span class="key-desc">Расенган (30 Чакра)</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">4 / R</span>
+            <span class="key-desc">Режим Девятихвостого (60 Чакра)</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">C (зажать)</span>
+            <span class="key-desc">Быстрый заряд Чакры</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">ESC</span>
+            <span class="key-desc">Пауза / Освободить курсор</span>
+          </div>
+        </div>
+
+        <div class="tips-box">
+          <p>💡 <strong>Паркур в Конохе:</strong> Беги прямо в стену любого здания или на скалу Хокаге, чтобы <strong>взбегать вверх по стене</strong>! Нажав <strong>[Space]</strong> на стене, Наруто отпрыгнет назад с сальто. Из поверженных врагов выпадает <strong>Рамен Ичираку 🍜</strong> и <strong>Свитки 📜</strong>!</p>
+        </div>
+
+        <div class="modal-volume-box">
+          <div class="modal-volume-header">
+            <span>🎵 Громкость музыки и эффектов:</span>
+            <span id="modal-vol-val" class="modal-vol-val">60%</span>
+          </div>
+          <div class="modal-slider-row">
+            <button id="modal-btn-mute" class="hud-btn small-btn" title="Звук">🔊</button>
+            <input type="range" id="modal-volume-slider" min="0" max="1" step="0.01" value="0.6" class="anime-slider" />
+          </div>
+        </div>
+
+        <button id="btn-start" class="btn-action">ИГРАТЬ! DATTEBAYO!</button>
+      </div>
+      <div class="scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- Game Over / Victory Modal -->
+  <div id="game-over-modal" class="modal-overlay hidden">
+    <div class="scroll-modal">
+      <div class="scroll-content">
+        <h1 class="modal-title" id="game-over-title">MISSION COMPLETE!</h1>
+        <p class="modal-subtitle" id="game-over-desc">Ты защитил Коноху как истинный Хокаге!</p>
+        <div class="stats-summary">
+          <p>Побеждено шиноби: <span id="summary-kills" class="stat-highlight">0</span></p>
+          <p>Финальный счет: <span id="summary-score" class="stat-highlight">0</span></p>
+          <p>Волн выдержано: <span id="summary-wave" class="stat-highlight">1</span></p>
+        </div>
+        <button id="btn-restart" class="btn-action">ИГРАТЬ СНОВА</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

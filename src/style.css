@@ -1,0 +1,844 @@
+/* Naruto: Shinobi Chronicles 3D - Anime UI Styling */
+
+:root {
+  --primary-orange: #ff7700;
+  --secondary-orange: #ff9d00;
+  --konoha-blue: #0b2545;
+  --chakra-cyan: #00f0ff;
+  --chakra-glow: rgba(0, 240, 255, 0.6);
+  --kyuubi-red: #ff1a1a;
+  --kyuubi-orange: #ff5500;
+  --hp-green: #00e676;
+  --hp-damage: #ff1744;
+  --hud-bg: rgba(14, 20, 32, 0.85);
+  --hud-border: #ff9d00;
+  --font-comic: 'Bangers', cursive, sans-serif;
+  --font-heavy: 'Russo One', sans-serif;
+  --font-clean: 'Outfit', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body, html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #0d1117;
+  font-family: var(--font-clean);
+  color: #ffffff;
+}
+
+#game-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+#fx-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+#hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* =========================================
+   TOP LEFT: PLAYER STATUS CARD
+   ========================================= */
+.player-card {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(135deg, rgba(16, 24, 40, 0.9) 0%, rgba(26, 38, 62, 0.8) 100%);
+  padding: 12px 18px 12px 12px;
+  border-radius: 16px;
+  border: 2px solid var(--hud-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 157, 0, 0.3);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+  transform: skewX(-4deg);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.avatar-frame {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  border: 3px solid #ffaa00;
+  background: radial-gradient(circle, #ffb300 0%, #d84315 100%);
+  overflow: hidden;
+  box-shadow: 0 0 12px rgba(255, 170, 0, 0.6);
+  flex-shrink: 0;
+}
+
+.avatar-naruto {
+  width: 100%;
+  height: 100%;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%23ff9800'/%3E%3Cpath d='M25,25 L50,5 L58,22 L75,10 L70,30 L90,25 L75,45 L85,60 L70,65 L50,90 L30,65 L15,60 L25,45 L10,25 L30,30 Z' fill='%23ffeb3b' stroke='%23f57f17' stroke-width='2'/%3E%3Ccircle cx='50' cy='55' r='28' fill='%23ffcc80'/%3E%3Crect x='24' y='36' width='52' height='14' rx='3' fill='%231a237e'/%3E%3Crect x='36' y='38' width='28' height='10' rx='2' fill='%23cfd8dc' stroke='%2337474f' stroke-width='1.5'/%3E%3Ccircle cx='50' cy='43' r='2.5' fill='none' stroke='%23263238' stroke-width='1'/%3E%3Ccircle cx='40' cy='56' r='3.5' fill='%230288d1'/%3E%3Ccircle cx='60' cy='56' r='3.5' fill='%230288d1'/%3E%3Cpath d='M44,65 Q50,70 56,65' fill='none' stroke='%23d84315' stroke-width='2' stroke-linecap='round'/%3E%3Cline x1='30' y1='56' x2='38' y2='57' stroke='%23d84315' stroke-width='1.5'/%3E%3Cline x1='30' y1='60' x2='38' y2='60' stroke='%23d84315' stroke-width='1.5'/%3E%3Cline x1='62' y1='57' x2='70' y2='56' stroke='%23d84315' stroke-width='1.5'/%3E%3Cline x1='62' y1='60' x2='70' y2='60' stroke='%23d84315' stroke-width='1.5'/%3E%3C/svg%3E") center/cover no-repeat;
+}
+
+.avatar-naruto.kyuubi {
+  filter: hue-rotate(320deg) saturate(2.5) contrast(1.3);
+  animation: kyuubiShake 0.15s infinite alternate;
+}
+
+@keyframes kyuubiShake {
+  0% { transform: translate(1px, 1px); }
+  100% { transform: translate(-1px, -1px); }
+}
+
+.ninja-rank-tag {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.75);
+  color: #ffcc00;
+  font-family: var(--font-heavy);
+  font-size: 10px;
+  text-align: center;
+  padding: 1px 0;
+  letter-spacing: 1px;
+}
+
+.bars-container {
+  min-width: 230px;
+}
+
+.bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.shinobi-name {
+  color: #ffaa00;
+  font-family: var(--font-heavy);
+}
+
+.hp-text, .chakra-text {
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.bar-outer {
+  position: relative;
+  width: 100%;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  margin-top: 3px;
+}
+
+.hp-bar .bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, #00c853 0%, #69f0ae 100%);
+  border-radius: 6px;
+  transition: width 0.15s ease-out;
+  box-shadow: 0 0 10px rgba(0, 230, 118, 0.7);
+}
+
+.hp-bar .bar-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: rgba(255, 23, 68, 0.5);
+  width: 100%;
+  z-index: -1;
+  transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.chakra-bar .bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, #0091ea 0%, #00f0ff 70%, #ffffff 100%);
+  border-radius: 6px;
+  transition: width 0.1s ease-out;
+  box-shadow: 0 0 12px var(--chakra-cyan);
+}
+
+.chakra-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: chakraPulse 2s infinite linear;
+}
+
+@keyframes chakraPulse {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.kyuubi-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(90deg, #d50000, #ff6d00);
+  border-radius: 6px;
+  padding: 3px 8px;
+  margin-top: 6px;
+  font-family: var(--font-heavy);
+  font-size: 11px;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(255, 26, 26, 0.8);
+  animation: glowRed 1s infinite alternate;
+}
+
+@keyframes glowRed {
+  0% { box-shadow: 0 0 8px #ff1744; }
+  100% { box-shadow: 0 0 18px #ff5252; }
+}
+
+/* =========================================
+   TOP CENTER: WAVE BANNER
+   ========================================= */
+.wave-banner {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) skewX(-6deg);
+  background: linear-gradient(180deg, rgba(14, 22, 38, 0.9) 0%, rgba(20, 10, 5, 0.9) 100%);
+  border: 2px solid var(--primary-orange);
+  border-radius: 12px;
+  padding: 8px 24px;
+  text-align: center;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 12px rgba(255, 119, 0, 0.4);
+  backdrop-filter: blur(8px);
+}
+
+.wave-title {
+  font-family: var(--font-comic);
+  font-size: 24px;
+  letter-spacing: 2px;
+  color: #ffaa00;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9), 0 0 10px #ff7700;
+}
+
+.wave-objective {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #d1d5db;
+}
+
+.highlight-num {
+  color: #ff3d00;
+  font-family: var(--font-heavy);
+  font-size: 15px;
+}
+
+/* =========================================
+   TOP RIGHT: STATS PANEL
+   ========================================= */
+.top-right-panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.stat-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(14, 20, 32, 0.85);
+  border: 2px solid #374151;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-family: var(--font-heavy);
+  font-size: 13px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.stat-icon {
+  font-size: 16px;
+}
+
+.hud-btn {
+  background: rgba(14, 20, 32, 0.85);
+  border: 2px solid var(--primary-orange);
+  color: #ffffff;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.hud-btn:hover {
+  background: var(--primary-orange);
+  transform: scale(1.08);
+}
+
+/* =========================================
+   VOLUME CONTROL PANEL & SLIDERS
+   ========================================= */
+.volume-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(14, 20, 32, 0.88);
+  border: 2px solid var(--primary-orange);
+  border-radius: 12px;
+  padding: 3px 12px 3px 3px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 115, 0, 0.25);
+  backdrop-filter: blur(8px);
+}
+
+.volume-slider-box {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 95px;
+}
+
+.volume-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-heavy);
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+
+.volume-title {
+  color: #94a3b8;
+}
+
+.volume-pct {
+  color: #00f0ff;
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+/* Custom Anime Sliders */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #ff7300, #ffb703);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #ff7300;
+  cursor: pointer;
+  margin-top: -4px;
+  box-shadow: 0 0 8px rgba(255, 115, 0, 0.8);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+  box-shadow: 0 0 12px #ff9100;
+}
+
+.modal-volume-box {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1.5px solid rgba(255, 115, 0, 0.4);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin: 12px 0 16px 0;
+  text-align: left;
+}
+
+.modal-volume-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-heavy);
+  font-size: 13px;
+  color: #ffaa00;
+  margin-bottom: 8px;
+}
+
+.modal-vol-val {
+  color: #00f0ff;
+  font-family: monospace;
+  font-size: 14px;
+}
+
+.modal-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.small-btn {
+  width: 34px !important;
+  height: 34px !important;
+  font-size: 15px !important;
+  flex-shrink: 0;
+}
+
+/* =========================================
+   COMBO COUNTER (LEFT CENTER)
+   ========================================= */
+.combo-box {
+  position: absolute;
+  top: 40%;
+  left: 30px;
+  transform: translateY(-50%) skewX(-8deg);
+  text-align: left;
+  pointer-events: none;
+  transition: transform 0.15s ease-out;
+}
+
+.combo-box.pop {
+  animation: comboPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes comboPop {
+  0% { transform: translateY(-50%) skewX(-8deg) scale(0.8); }
+  50% { transform: translateY(-50%) skewX(-8deg) scale(1.25); }
+  100% { transform: translateY(-50%) skewX(-8deg) scale(1); }
+}
+
+.combo-num {
+  font-family: var(--font-comic);
+  font-size: 70px;
+  line-height: 0.85;
+  color: #ffea00;
+  text-shadow: 3px 3px 0 #d50000, 6px 6px 0 #000000, 0 0 20px #ff9100;
+}
+
+.combo-label {
+  font-family: var(--font-comic);
+  font-size: 28px;
+  color: #ffffff;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 0 #000000;
+  margin-left: 6px;
+}
+
+.combo-rating {
+  font-family: var(--font-heavy);
+  font-size: 18px;
+  color: #00e5ff;
+  letter-spacing: 1px;
+  text-shadow: 2px 2px 0 #000000, 0 0 10px #00e5ff;
+  margin-top: 4px;
+}
+
+/* =========================================
+   CENTER ANNOUNCEMENT (ROUND / WAVE / KO)
+   ========================================= */
+.announcement {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: none;
+  text-align: center;
+  animation: announceAnim 2s forwards cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.announcement h1 {
+  font-family: var(--font-comic);
+  font-size: 64px;
+  letter-spacing: 4px;
+  color: #ffea00;
+  text-shadow: 4px 4px 0 #d50000, 8px 8px 0 #000000, 0 0 30px #ff6d00;
+}
+
+@keyframes announceAnim {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+  20% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+  35% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  80% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -60%) scale(1.2); opacity: 0; }
+}
+
+/* =========================================
+   BOTTOM CENTER: JUTSU DOCK
+   ========================================= */
+.skills-dock {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  background: rgba(10, 16, 26, 0.85);
+  padding: 10px 16px;
+  border-radius: 20px;
+  border: 2px solid rgba(255, 170, 0, 0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(255, 119, 0, 0.2);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+
+.skill-slot {
+  position: relative;
+  width: 76px;
+  height: 84px;
+  background: linear-gradient(180deg, #1f293d 0%, #0e1524 100%);
+  border: 2px solid #374151;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  overflow: hidden;
+}
+
+.skill-slot:hover {
+  transform: translateY(-5px);
+  border-color: var(--primary-orange);
+  box-shadow: 0 6px 15px rgba(255, 119, 0, 0.4);
+}
+
+.skill-slot.active {
+  border-color: var(--chakra-cyan);
+  box-shadow: 0 0 18px var(--chakra-cyan);
+}
+
+.skill-slot.ultimate {
+  border-color: #ff3d00;
+  background: linear-gradient(180deg, #3d1515 0%, #1a0808 100%);
+}
+
+.skill-slot.ultimate:hover {
+  box-shadow: 0 6px 20px rgba(255, 61, 0, 0.6);
+}
+
+.skill-slot.passive {
+  border-color: #ffd600;
+}
+
+.skill-icon {
+  font-size: 26px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+.skill-key {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-family: var(--font-heavy);
+  font-size: 10px;
+  color: #ffaa00;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.skill-cost {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--chakra-cyan);
+}
+
+.skill-name {
+  font-size: 10px;
+  font-weight: 800;
+  color: #e5e7eb;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+  text-align: center;
+}
+
+.cooldown-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  background: rgba(0, 0, 0, 0.75);
+  pointer-events: none;
+  transition: height 0.1s linear;
+}
+
+/* =========================================
+   CROSSHAIR & VIGNETTES
+   ========================================= */
+#crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.crosshair-dot {
+  width: 4px;
+  height: 4px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #00f0ff;
+}
+
+.crosshair-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.2s;
+}
+
+#damage-vignette {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  box-shadow: inset 0 0 100px rgba(255, 0, 0, 0);
+  pointer-events: none;
+  transition: box-shadow 0.2s;
+}
+
+#damage-vignette.active {
+  box-shadow: inset 0 0 120px rgba(255, 0, 0, 0.6);
+}
+
+#chakra-vignette {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  box-shadow: inset 0 0 120px rgba(0, 240, 255, 0);
+  pointer-events: none;
+  transition: box-shadow 0.3s;
+}
+
+#chakra-vignette.charging {
+  box-shadow: inset 0 0 140px rgba(0, 240, 255, 0.5);
+}
+
+/* =========================================
+   MODALS (SCROLL STYLE)
+   ========================================= */
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(5, 10, 20, 0.85);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  transition: opacity 0.3s;
+}
+
+.modal-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scroll-modal {
+  position: relative;
+  max-width: 600px;
+  width: 90%;
+  background: #fff8e7;
+  color: #261908;
+  border-radius: 12px;
+  border: 4px solid #8d4f13;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8), 0 0 25px rgba(255, 153, 0, 0.4);
+  overflow: hidden;
+}
+
+.scroll-content {
+  padding: 30px 36px;
+  text-align: center;
+}
+
+.modal-title {
+  font-family: var(--font-comic);
+  font-size: 40px;
+  color: #c2410c;
+  letter-spacing: 2px;
+  text-shadow: 1px 1px 0 #000;
+  margin-bottom: 4px;
+}
+
+.modal-subtitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #78350f;
+  margin-bottom: 24px;
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+.control-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(139, 69, 19, 0.08);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border-left: 3px solid #ea580c;
+}
+
+.key-badge {
+  background: #1e293b;
+  color: #ffaa00;
+  font-family: var(--font-heavy);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  white-space: nowrap;
+}
+
+.key-desc {
+  font-size: 13px;
+  font-weight: 700;
+  color: #33200a;
+}
+
+.tips-box {
+  background: #ffedd5;
+  border: 1px dashed #ea580c;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #7c2d12;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.btn-action {
+  background: linear-gradient(180deg, #f97316 0%, #c2410c 100%);
+  color: #ffffff;
+  font-family: var(--font-comic);
+  font-size: 26px;
+  letter-spacing: 2px;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 36px;
+  cursor: pointer;
+  box-shadow: 0 6px 0 #9a3412, 0 10px 25px rgba(234, 88, 12, 0.5);
+  transition: all 0.15s;
+}
+
+.btn-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 0 #9a3412, 0 12px 30px rgba(234, 88, 12, 0.7);
+}
+
+.btn-action:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #9a3412;
+}
+
+.stats-summary {
+  background: rgba(139, 69, 19, 0.08);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 24px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.8;
+}
+
+.stat-highlight {
+  color: #ea580c;
+  font-size: 20px;
+  font-family: var(--font-heavy);
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Floating damage numbers in 3D world */
+.damage-number {
+  position: absolute;
+  font-family: var(--font-comic);
+  font-size: 28px;
+  color: #ffeb3b;
+  text-shadow: 2px 2px 0 #d50000, 4px 4px 0 #000;
+  pointer-events: none;
+  animation: floatUp 0.8s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 20;
+}
+
+.damage-number.crit {
+  font-size: 38px;
+  color: #ff1744;
+  text-shadow: 2px 2px 0 #ffea00, 4px 4px 0 #000;
+}
+
+@keyframes floatUp {
+  0% { transform: translate(-50%, 0) scale(0.6); opacity: 0; }
+  25% { transform: translate(-50%, -20px) scale(1.3); opacity: 1; }
+  100% { transform: translate(-50%, -60px) scale(1); opacity: 0; }
+}
