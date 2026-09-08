@@ -663,13 +663,14 @@ export class Naruto {
       // Reached the roof ledge? Smoothly vault onto the roof!
       if (this.position.y >= wallCheck.roofY - 0.25) {
         this.isWallRunning = false;
-        this.position.y = wallCheck.roofY;
         const forward = wallCheck.wallNormal.clone().negate();
-        this.position.x += forward.x * 1.2;
-        this.position.z += forward.z * 1.2;
+        this.position.x += forward.x * 1.35;
+        this.position.z += forward.z * 1.35;
+        const roofLandY = (city && city.getGroundHeight) ? city.getGroundHeight(this.position.x, this.position.z, wallCheck.roofY + 0.8) : wallCheck.roofY;
+        this.position.y = Math.max(roofLandY, wallCheck.roofY + 0.45);
         this.velocity.x = forward.x * 7.5;
         this.velocity.z = forward.z * 7.5;
-        this.velocity.y = 1.8;
+        this.velocity.y = 2.4;
         this.isGrounded = true;
         this.canDoubleJump = true;
         this.doubleFlipTimer = 0;

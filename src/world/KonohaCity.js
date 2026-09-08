@@ -368,7 +368,8 @@ export class KonohaCity {
     shopGroup.add(base, roof, counter, noren, textRed);
     this.scene.add(shopGroup);
 
-    this.addBuildingStructure(16 - w / 2, 16 + w / 2, 22 - d / 2, 22 + d / 2, h, shopGroup);
+    // Register Ichiraku with roofPeak = 2.5 for traditional tiled sloped roof
+    this.addBuildingStructure(16 - w / 2, 16 + w / 2, 22 - d / 2, 22 + d / 2, h, shopGroup, false, 0, 2.5);
   }
 
   buildDenseDistricts() {
@@ -477,10 +478,11 @@ export class KonohaCity {
 
       this.scene.add(bGroup);
 
+      // Register building structure with roofPeakH = 3.2m so sloped Japanese roof is fully solid and walkable!
       this.addBuildingStructure(
         p.x - p.w / 2, p.x + p.w / 2,
         p.z - p.d / 2, p.z + p.d / 2,
-        p.h, bGroup
+        p.h, bGroup, false, 0, roofPeakH
       );
     });
 
@@ -513,6 +515,13 @@ export class KonohaCity {
 
     bridge.add(deck, rail1, rail2);
     this.scene.add(bridge);
+
+    // Register solid walkable platform structure for the ninja rooftop bridge
+    const minBx = Math.min(x1, x2) - 1.2;
+    const maxBx = Math.max(x1, x2) + 1.2;
+    const minBz = Math.min(z1, z2) - 1.2;
+    const maxBz = Math.max(z1, z2) + 1.2;
+    this.addBuildingStructure(minBx, maxBx, minBz, maxBz, height + 0.3, bridge, false, height - 0.4);
   }
 
   buildOverheadWiresAndLanterns() {
@@ -637,7 +646,7 @@ export class KonohaCity {
     }
   }
 
-  addBuildingStructure(minX, maxX, minZ, maxZ, height, group, isWall = false, bottomY = 0) {
+  addBuildingStructure(minX, maxX, minZ, maxZ, height, group, isWall = false, bottomY = 0, roofPeak = 0) {
     this.buildings.push({
       shape: 'box',
       minX: Math.min(minX, maxX),
@@ -646,13 +655,14 @@ export class KonohaCity {
       maxZ: Math.max(minZ, maxZ),
       height: height,
       roofY: height,
+      roofPeak: roofPeak,
       bottomY: bottomY,
       isWall: isWall,
       mesh: group
     });
   }
 
-  addCylinderStructure(centerX, centerZ, radius, height, group, isWall = false, bottomY = 0) {
+  addCylinderStructure(centerX, centerZ, radius, height, group, isWall = false, bottomY = 0, roofPeak = 0) {
     this.buildings.push({
       shape: 'cylinder',
       centerX: centerX,
@@ -660,6 +670,7 @@ export class KonohaCity {
       radius: radius,
       height: height,
       roofY: height,
+      roofPeak: roofPeak,
       bottomY: bottomY,
       isWall: isWall,
       mesh: group,
@@ -683,18 +694,40 @@ export class KonohaCity {
         const dz = z - b.centerZ;
         const maxR = b.radius + pad;
         if (dx * dx + dz * dz <= maxR * maxR) {
-          if (curY >= b.roofY - 1.4) {
-            if (b.roofY > highestGround) {
-              highestGround = b.roofY;
+          let surfaceY = b.roofY;
+          if (b.roofPeak && b.roofPeak > 0) {
+            const curR = Math.sqrt(dx * dx + dz * dz);
+            const normR = Math.min(1.0, curR / (b.radius + 0.3));
+            surfaceY = b.roofY + 0.2 + (1.0 - normR) * b.roofPeak;
+          }
+          if (curY >= b.roofY - 1.5) {
+            if (surfaceY > highestGround) {
+              highestGround = surfaceY;
             }
           }
         }
       } else {
-        const pad = 0.35;
+        const pad = 0.5;
         if (x >= b.minX - pad && x <= b.maxX + pad && z >= b.minZ - pad && z <= b.maxZ + pad) {
-          if (curY >= b.roofY - 1.4) {
-            if (b.roofY > highestGround) {
-              highestGround = b.roofY;
+          let surfaceY = b.roofY;
+
+          // If the building has a traditional sloped hip-and-gable roof
+          if (b.roofPeak && b.roofPeak > 0) {
+            const cx = (b.minX + b.maxX) / 2;
+            const cz = (b.minZ + b.maxZ) / 2;
+            const hw = Math.max(0.001, (b.maxX - b.minX) / 2);
+            const hd = Math.max(0.001, (b.maxZ - b.minZ) / 2);
+            // Distance fraction from peak ridge to eaves (0 at center peak, 1 at eaves edge)
+            const nx = Math.abs(x - cx) / (hw + 0.6);
+            const nz = Math.abs(z - cz) / (hd + 0.6);
+            const distFromPeak = Math.min(1.0, Math.max(nx, nz));
+            // Exact Japanese roof slope: eaves are at roofY + 0.35, rising to peak at roofY + roofPeak
+            surfaceY = b.roofY + 0.35 + (1.0 - distFromPeak) * (b.roofPeak - 0.15);
+          }
+
+          if (curY >= b.roofY - 1.5) {
+            if (surfaceY > highestGround) {
+              highestGround = surfaceY;
             }
           }
         }
@@ -861,7 +894,8 @@ export class KonohaCity {
   resolveCameraPosition(targetPos, desiredCamPos, camRadius = 0.45) {
     for (const b of this.buildings) {
       const bottom = b.bottomY || 0;
-      if (desiredCamPos.y < bottom || desiredCamPos.y >= b.roofY) continue;
+      const roofTop = b.roofY + (b.roofPeak || 0);
+      if (desiredCamPos.y < bottom || desiredCamPos.y >= roofTop) continue;
 
       if (b.shape === 'cylinder') {
         const dx = desiredCamPos.x - b.centerX;
