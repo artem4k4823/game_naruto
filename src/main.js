@@ -7,6 +7,9 @@ import { JutsuManager } from './jutsu/JutsuManager.js';
 import { Enemy, PickupItem } from './character/Enemy.js';
 import { HUD } from './ui/HUD.js';
 import { sound } from './audio/SoundFX.js';
+import { QuestManager } from './quest/QuestManager.js';
+import { Minimap } from './ui/Minimap.js';
+import { VillagerManager } from './character/Villager.js';
 
 // Dedicated Shinobi Patrol Zones across Konoha Village and the Great Outer Forest
 export const PATROL_ZONES = [
@@ -76,10 +79,13 @@ class Game {
       space: false, shift: false, c: false
     };
 
-    // AAA Camera Orbit
+    // AAA Camera Orbit & Mouse Wheel Zoom
     this.camYaw = Math.PI;
     this.camPitch = 0.28;
     this.camDistance = 6.8;
+    this.camDistanceTarget = 6.8;
+    this.minCamDistance = 3.0;
+    this.maxCamDistance = 18.0;
     this.mouseSensitivity = 0.0035;
     this.lastMouseX = null;
     this.lastMouseY = null;
@@ -89,7 +95,10 @@ class Game {
     this.initSystems();
     this.initPauseMenu();
     this.initInputs();
-    this.startWave(1);
+
+    // Start in peaceful village exploration mode (missions from Kakashi Hatake)
+    this.hud.updateQuestUI(this.questManager);
+    this.hud.updateWave(1, 0, this.kills, this.score);
 
     // Game loop
     this.clock = new THREE.Clock();
@@ -100,13 +109,13 @@ class Game {
   initThree() {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x64b5f6);
-    this.scene.fog = new THREE.FogExp2(0xb0bec5, 0.0026); // Extended atmospheric view distance for Konoha + Forest!
+    this.scene.fog = new THREE.FogExp2(0x81d4fa, 0.0016); // Seamless anime horizon sky haze
 
     this.camera = new THREE.PerspectiveCamera(
       55,
       window.innerWidth / window.innerHeight,
-      0.1,
-      650
+      0.25,
+      1400
     );
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -118,26 +127,38 @@ class Game {
     this.renderer.toneMappingExposure = 1.22;
     this.container.appendChild(this.renderer.domElement);
 
-    // Vibrant Anime Sunlight for Konoha Village and Great Forest
-    const sunLight = new THREE.DirectionalLight(0xfff8e1, 1.95);
-    sunLight.position.set(60, 120, 90);
-    sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = 2048;
-    sunLight.shadow.mapSize.height = 2048;
-    sunLight.shadow.camera.near = 10;
-    sunLight.shadow.camera.far = 480;
-    sunLight.shadow.camera.left = -160;
-    sunLight.shadow.camera.right = 160;
-    sunLight.shadow.camera.top = 160;
-    sunLight.shadow.camera.bottom = -160;
-    this.scene.add(sunLight);
+    // High-Fidelity Studio Anime Lighting & Shadows
+    this.sunLightTarget = new THREE.Object3D();
+    this.scene.add(this.sunLightTarget);
 
-    const ambientLight = new THREE.AmbientLight(0xb3e5fc, 0.95);
-    this.scene.add(ambientLight);
+    this.sunLight = new THREE.DirectionalLight(0xfffaed, 2.05);
+    this.sunLight.position.set(55, 115, 75);
+    this.sunLight.target = this.sunLightTarget;
+    this.sunLight.castShadow = true;
+    this.sunLight.shadow.mapSize.width = 2048;
+    this.sunLight.shadow.mapSize.height = 2048;
+    this.sunLight.shadow.camera.near = 10;
+    this.sunLight.shadow.camera.far = 380;
+    this.sunLight.shadow.camera.left = -68;
+    this.sunLight.shadow.camera.right = 68;
+    this.sunLight.shadow.camera.top = 68;
+    this.sunLight.shadow.camera.bottom = -68;
+    this.sunLight.shadow.bias = -0.00035;
+    this.sunLight.shadow.normalBias = 0.025;
+    this.scene.add(this.sunLight);
 
-    const rimLight = new THREE.DirectionalLight(0xffd54f, 0.85);
-    rimLight.position.set(-35, 30, -50);
+    // Natural 2-Tone Bounce Lighting (Sky Cyan from above + Forest Turf Green from below)
+    const hemiLight = new THREE.HemisphereLight(0x81d4fa, 0x2e7d32, 0.72);
+    this.scene.add(hemiLight);
+
+    // Warm Anime Silhouette Rim Light
+    const rimLight = new THREE.DirectionalLight(0xffca28, 0.68);
+    rimLight.position.set(-50, 45, -70);
     this.scene.add(rimLight);
+
+    // Soft global ambient fill
+    const ambientFill = new THREE.AmbientLight(0xffffff, 0.22);
+    this.scene.add(ambientFill);
 
     window.addEventListener('resize', () => {
       this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -148,10 +169,13 @@ class Game {
 
   initSystems() {
     this.vfx = new AnimeVFX(this.scene);
-    this.city = new KonohaCity(this.scene);
+    this.city = new KonohaCity(this.scene, this.vfx);
     this.naruto = new Naruto(this.scene, this.vfx);
     this.jutsu = new JutsuManager(this.scene, this.vfx, this.naruto);
     this.hud = new HUD(this.camera);
+    this.questManager = new QuestManager();
+    this.minimap = new Minimap('minimap-canvas');
+    this.villagers = new VillagerManager(this.scene);
   }
 
   initPauseMenu() {
@@ -220,6 +244,14 @@ class Game {
       const code = e.code;
 
       if (code === 'Escape') {
+        if (this.isQuestModalOpen()) {
+          this.closeQuestModal();
+          return;
+        }
+        if (this.isShopModalOpen()) {
+          this.hud.closeWeaponShop(() => this.resumeGame());
+          return;
+        }
         if (!this.isModalOpen() && !this.isPaused) {
           this.pauseGame();
         } else if (this.isPaused) {
@@ -247,11 +279,73 @@ class Game {
         this.naruto.state = 'CHARGE_CHAKRA';
       }
 
+      if (this.naruto.isKyuubiMode) {
+        if (code === 'Digit1' || code === 'KeyC') {
+          this.jutsu.castKuramaRoar(this.enemies, (enemy, dmg, isFinisher) => {
+            this.handleEnemyHit(enemy, dmg, isFinisher);
+          });
+          return;
+        }
+        if (code === 'Digit2' || code === 'KeyQ') {
+          this.jutsu.castKuramaTailSweep(this.enemies, (enemy, dmg, isFinisher) => {
+            this.handleEnemyHit(enemy, dmg, isFinisher);
+          });
+          return;
+        }
+        if (code === 'Digit3' || code === 'KeyE') {
+          this.jutsu.castKuramaBijuuDama();
+          return;
+        }
+        if (code === 'Digit4' || code === 'KeyR') {
+          this.jutsu.castKuramaRoar(this.enemies, (enemy, dmg, isFinisher) => {
+            this.handleEnemyHit(enemy, dmg, isFinisher);
+          });
+          return;
+        }
+      }
+
       if (code === 'Digit1') this.jutsu.castShuriken();
       if (code === 'Digit2' || code === 'KeyQ') this.jutsu.castShadowClones(this.enemies);
       if (code === 'Digit3' || code === 'KeyE') this.jutsu.castRasengan();
       if (code === 'Digit4' || code === 'KeyR') this.jutsu.castKyuubiMode();
+      if (code === 'Digit5' || code === 'KeyT') this.jutsu.castRasenshuriken();
+      if (code === 'KeyG') this.jutsu.castSageMode();
+
+      if (code === 'KeyK' || code === 'KeyU') {
+        this.hud.toggleSkillTree(this.naruto, () => this.pauseGame(), () => this.resumeGame());
+      }
+
+      if (code === 'KeyX') {
+        if (this.naruto.hasKatana) {
+          this.naruto.toggleWeapon();
+          this.hud.updateWeaponUI(this.naruto.equippedWeapon, this.naruto.hasKatana);
+        } else {
+          this.hud.showShopAlert('⚔️ У вас еще нет оружия! Купите Катану Ниндзя у торговца в центре деревни.');
+        }
+      }
+
+      if (code === 'KeyF') {
+        if (this.isNearKakashi()) {
+          if (this.isQuestModalOpen()) {
+            this.closeQuestModal();
+          } else {
+            this.openQuestBoard();
+          }
+        } else if (this.isNearMerchant()) {
+          this.openWeaponShop();
+        }
+      }
     });
+
+    // Mouse Wheel Camera Zoom (Third-Person distance adjustment: 3m - 18m)
+    window.addEventListener('wheel', e => {
+      if (this.isModalOpen() || this.isPaused) return;
+      const zoomSpeed = 0.0065;
+      this.camDistanceTarget = Math.max(
+        this.minCamDistance,
+        Math.min(this.maxCamDistance, this.camDistanceTarget + e.deltaY * zoomSpeed)
+      );
+    }, { passive: true });
 
     window.addEventListener('keyup', e => {
       const code = e.code;
@@ -324,7 +418,9 @@ class Game {
       'slot-shuriken': () => this.jutsu.castShuriken(),
       'slot-clones': () => this.jutsu.castShadowClones(this.enemies),
       'slot-rasengan': () => this.jutsu.castRasengan(),
-      'slot-kyuubi': () => this.jutsu.castKyuubiMode()
+      'slot-kyuubi': () => this.jutsu.castKyuubiMode(),
+      'slot-rasenshuriken': () => this.jutsu.castRasenshuriken(),
+      'slot-sage': () => this.jutsu.castSageMode()
     };
 
     for (const [id, fn] of Object.entries(slots)) {
@@ -355,8 +451,115 @@ class Game {
   isModalOpen() {
     const startModal = document.getElementById('modal-overlay');
     const overModal = document.getElementById('game-over-modal');
+    const shopModal = document.getElementById('shop-modal');
+    const skillModal = document.getElementById('skill-tree-modal');
+    const questModal = document.getElementById('quest-modal');
     return (startModal && !startModal.classList.contains('hidden')) ||
-           (overModal && !overModal.classList.contains('hidden'));
+           (overModal && !overModal.classList.contains('hidden')) ||
+           (shopModal && !shopModal.classList.contains('hidden')) ||
+           (skillModal && !skillModal.classList.contains('hidden')) ||
+           (questModal && !questModal.classList.contains('hidden'));
+  }
+
+  isNearKakashi() {
+    if (!this.city || !this.city.questNpcPos || !this.naruto) return false;
+    return this.naruto.position.distanceTo(this.city.questNpcPos) < 5.2;
+  }
+
+  isQuestModalOpen() {
+    const qm = document.getElementById('quest-modal');
+    return qm && !qm.classList.contains('hidden');
+  }
+
+  isShopModalOpen() {
+    const sm = document.getElementById('shop-modal');
+    return sm && !sm.classList.contains('hidden');
+  }
+
+  openQuestBoard() {
+    if (document.exitPointerLock) {
+      try { document.exitPointerLock(); } catch (e) {}
+    }
+    this.hud.openQuestBoard(
+      this.questManager,
+      (questId) => this.acceptQuest(questId),
+      () => this.cancelCurrentQuest(),
+      () => this.pauseGame()
+    );
+  }
+
+  closeQuestModal() {
+    this.hud.closeQuestBoard(() => {
+      this.resumeGame();
+    });
+  }
+
+  acceptQuest(questId) {
+    // Clear old enemies before spawning mission targets
+    this.enemies.forEach(e => this.scene.remove(e.group));
+    this.enemies = [];
+
+    const quest = this.questManager.startQuest(questId, (q) => {
+      this.spawnQuestEnemies(q);
+    });
+
+    if (quest) {
+      this.hud.showQuestAlert(`📜 Миссия "${quest.title}" принята! Направляйся в зону: ${quest.zoneName}`);
+      this.hud.updateQuestUI(this.questManager);
+      this.hud.showAnnouncement(`МИССИЯ: ${quest.title.toUpperCase()}`);
+      sound.playLevelUp();
+      this.closeQuestModal();
+    }
+  }
+
+  cancelCurrentQuest() {
+    this.questManager.cancelQuest();
+    this.enemies.forEach(e => this.scene.remove(e.group));
+    this.enemies = [];
+    this.hud.updateQuestUI(this.questManager);
+    this.hud.showQuestAlert('Миссия отменена. В деревне снова спокойно.');
+  }
+
+  spawnQuestEnemies(quest) {
+    this.enemies = [];
+    const zoneCenter = quest.zoneCenter.clone();
+    const zoneObj = {
+      center: zoneCenter,
+      patrolRadius: quest.zoneRadius,
+      leashRadius: quest.zoneRadius * 1.5
+    };
+
+    quest.enemies.forEach(group => {
+      for (let i = 0; i < group.count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 3 + Math.random() * (quest.zoneRadius * 0.7);
+        const spawnPos = new THREE.Vector3(
+          zoneCenter.x + Math.cos(angle) * dist,
+          0,
+          zoneCenter.z + Math.sin(angle) * dist
+        );
+        this.city.clampPosition(spawnPos, 0.6);
+        this.enemies.push(new Enemy(this.scene, this.vfx, group.type, spawnPos, zoneObj));
+      }
+    });
+  }
+
+  isNearMerchant() {
+    if (!this.city || !this.city.merchantPos || !this.naruto) return false;
+    return this.naruto.position.distanceTo(this.city.merchantPos) < 5.2;
+  }
+
+  openWeaponShop() {
+    if (document.exitPointerLock) {
+      try { document.exitPointerLock(); } catch (e) {}
+    }
+    this.hud.openWeaponShop(this.naruto, this.jutsu, () => {
+      try {
+        if (document.body.requestPointerLock) {
+          document.body.requestPointerLock();
+        }
+      } catch (e) {}
+    });
   }
 
   performDash() {
@@ -369,12 +572,25 @@ class Game {
     setTimeout(() => this.vfx.setSpeedLines(0), 180);
 
     const forward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.naruto.rotationY);
-    this.naruto.position.addScaledVector(forward, 7.5);
-    if (this.city) this.city.clampPosition(this.naruto.position, 0.6);
+    const isKyuubi = this.naruto.isKyuubiMode;
+    const dashDist = isKyuubi ? 10.0 : 7.5;
+    const charR = isKyuubi ? 1.9 : 0.55;
+
+    // Step through dash in increments to prevent tunneling through building walls
+    const steps = 5;
+    const stepDist = dashDist / steps;
+    for (let s = 0; s < steps; s++) {
+      this.naruto.position.addScaledVector(forward, stepDist);
+      if (this.city && this.city.resolveCollision) {
+        this.city.resolveCollision(this.naruto.position, charR);
+      }
+    }
+    if (this.city) this.city.clampPosition(this.naruto.position, charR);
   }
 
   checkMeleeHits(hitCenter, radius, dmg, isFinisher, comboStep) {
     let hitAny = false;
+    const isKatana = typeof comboStep === 'string' && comboStep.startsWith('KATANA');
 
     // 1. Training Yard Logs
     if (this.city && this.city.trainingLogs) {
@@ -382,6 +598,9 @@ class Game {
         if (log.pos.distanceTo(hitCenter) < radius + log.radius) {
           hitAny = true;
           this.vfx.spawnHitSparks(log.pos, isFinisher);
+          if (isKatana) {
+            sound.playKatanaHit(isFinisher);
+          }
           this.comboStreak++;
           this.hud.registerHit(this.comboStreak);
           this.hud.spawnDamageText(log.pos, dmg, isFinisher);
@@ -405,13 +624,43 @@ class Game {
         if (comboStep === 'RUN_2') { knockPower = 18; liftY = 0.50; }
         if (comboStep === 'RUN_3') { knockPower = 16; liftY = 0.35; }
 
+        if (comboStep === 'KATANA_1') { knockPower = 8; liftY = 0.08; }
+        if (comboStep === 'KATANA_2') { knockPower = 11; liftY = 0.08; }
+        if (comboStep === 'KATANA_3') { knockPower = 14; liftY = 0.65; }
+        if (comboStep === 'KATANA_4') { knockPower = 26; liftY = 0.85; }
+        if (comboStep === 'KATANA_RUN_1') { knockPower = 14; liftY = 0.15; }
+        if (comboStep === 'KATANA_RUN_2') { knockPower = 22; liftY = 0.60; }
+        if (comboStep === 'KATANA_AIR') { knockPower = 20; liftY = 0.20; }
+
         const knockDir = enemy.position.clone().sub(this.naruto.position).normalize().setY(liftY);
         enemy.takeDamage(dmg, knockDir.multiplyScalar(knockPower));
 
         this.vfx.spawnHitSparks(enemyPos, isFinisher);
+        if (isKatana) {
+          sound.playKatanaHit(isFinisher);
+        }
         this.comboStreak++;
         this.hud.registerHit(this.comboStreak);
         this.hud.spawnDamageText(enemyPos, dmg, isFinisher);
+
+        // Sage Mode Vampirism: restore health on strike
+        if (this.naruto.isSageMode) {
+          this.naruto.heal(15);
+        }
+
+        // Uzumaki Rendan Combo Finisher Perk: shockwave AoE + heal
+        if (isFinisher && this.naruto.hasSkill('uzumaki_rendan')) {
+          this.naruto.heal(20);
+          this.vfx.spawnChakraAuraWisp(hitCenter, true);
+          this.enemies.forEach(other => {
+            if (other === enemy || other.isDead) return;
+            if (other.position.distanceTo(hitCenter) < 5.2) {
+              other.takeDamage(65, other.position.clone().sub(hitCenter).normalize().setY(0.5).multiplyScalar(16));
+              this.vfx.spawnHitSparks(other.position.clone().setY(1.0), false);
+              this.hud.spawnDamageText(other.position.clone().setY(1.0), 65, false);
+            }
+          });
+        }
 
         if (enemy.isDead) {
           this.handleEnemyDefeat(enemy);
@@ -428,25 +677,60 @@ class Game {
     this.kills++;
     this.score += enemy.scoreValue;
 
+    // Experience (XP) reward: Rogue Ninjas = 35 XP, Akatsuki = 80 XP
+    const xpReward = enemy.type === 'akatsuki' ? 80 : 35;
+    const leveledUp = this.naruto.addXp(xpReward);
+    this.hud.spawnXpText(enemy.position, xpReward);
+
+    if (leveledUp) {
+      this.hud.showAnnouncement(`LEVEL UP! LVL ${this.naruto.level} (+1 SP)`);
+    }
+    this.hud.updatePlayerStatus(this.naruto);
+
+    // Drop Ryo Coins (Shiny ancient ninja golden currency)
+    // Rogue ninjas drop 15 - 30 Ryo, Akatsuki drop 45 - 80 Ryo!
+    const ryoAmount = enemy.type === 'akatsuki'
+      ? Math.floor(45 + Math.random() * 35)
+      : Math.floor(15 + Math.random() * 16);
+    this.pickups.push(new PickupItem(this.scene, enemy.position, 'ryo', ryoAmount));
+
+    // Also chance for Ramen bowl or Chakra scroll
     const dropRoll = Math.random();
-    if (dropRoll < 0.5) {
-      this.pickups.push(new PickupItem(this.scene, enemy.position, 'ramen'));
-    } else if (dropRoll < 0.85) {
-      this.pickups.push(new PickupItem(this.scene, enemy.position, 'scroll'));
+    if (dropRoll < 0.35) {
+      this.pickups.push(new PickupItem(this.scene, enemy.position.clone().add(new THREE.Vector3(0.5, 0, 0.5)), 'ramen'));
+    } else if (dropRoll < 0.65) {
+      this.pickups.push(new PickupItem(this.scene, enemy.position.clone().add(new THREE.Vector3(-0.5, 0, -0.5)), 'scroll'));
     }
 
-    const aliveCount = this.enemies.filter(e => !e.isDead).length;
-    if (aliveCount === 0) {
-      this.hud.showAnnouncement(`WAVE ${this.wave} CLEARED!`);
+    // Update Quest Manager
+    const questResult = this.questManager.onEnemyDefeated();
+    this.hud.updateQuestUI(this.questManager);
+
+    if (questResult && questResult.completed) {
+      sound.playLevelUp();
+      this.naruto.winTimer = 2.4;
+      this.questManager.claimReward(this.naruto, this.hud);
       setTimeout(() => {
-        this.startWave(this.wave + 1);
-      }, 2200);
+        this.hud.updateQuestUI(this.questManager);
+        this.hud.showAnnouncement('КОНОХА В БЕЗОПАСНОСТИ! ВОЗЬМИ СЛЕДУЮЩУЮ МИССИЮ У КАКАШИ');
+      }, 3500);
     }
   }
 
   startWave(waveNumber) {
     this.wave = waveNumber;
     this.hud.showAnnouncement(`WAVE ${this.wave}: ПАТРУЛИ ШИНОБИ`);
+
+    // Wave bonus XP
+    if (waveNumber > 1) {
+      const waveBonus = 100 * waveNumber;
+      const leveledUp = this.naruto.addXp(waveBonus);
+      this.hud.spawnXpText(this.naruto.position, waveBonus);
+      if (leveledUp) {
+        setTimeout(() => this.hud.showAnnouncement(`LEVEL UP! LVL ${this.naruto.level} (+1 SP)`), 1500);
+      }
+      this.hud.updatePlayerStatus(this.naruto);
+    }
 
     this.enemies = [];
 
@@ -503,15 +787,32 @@ class Game {
   }
 
   updateCamera(dt = 0.016) {
-    // Dynamic FOV for high-speed ninja sprinting
-    const targetFov = (this.naruto && this.naruto.isSprinting) ? 68 : 55;
+    const isKyuubi = this.naruto && this.naruto.isKyuubiMode;
+
+    // In Kyuubi mode, allow higher max zoom and smoothly adjust default distance for colossal 8.3m Kurama
+    this.maxCamDistance = isKyuubi ? 52.0 : 18.0;
+    this.minCamDistance = isKyuubi ? 12.0 : 3.0;
+
+    // If Kyuubi is active, smoothly dolly back to at least 26.0m
+    if (isKyuubi && this.camDistanceTarget < 26.0) {
+      this.camDistanceTarget = 26.0;
+    } else if (!isKyuubi && this.camDistanceTarget > 18.0) {
+      this.camDistanceTarget = 6.8;
+    }
+
+    // Smooth third-person camera zoom (wheel scroll)
+    this.camDistance += (this.camDistanceTarget - this.camDistance) * Math.min(1.0, 10 * dt);
+
+    // Dynamic FOV for high-speed ninja sprinting / Kyuubi beast mode
+    const targetFov = (this.naruto && this.naruto.isSprinting) ? 72 : (isKyuubi ? 64 : 55);
     if (Math.abs(this.camera.fov - targetFov) > 0.05) {
       this.camera.fov += (targetFov - this.camera.fov) * Math.min(1.0, 9 * dt);
       this.camera.updateProjectionMatrix();
     }
 
-    // Third-person camera firmly following Naruto across ground and rooftops
-    const targetPos = this.naruto.position.clone().add(new THREE.Vector3(0, 1.5, 0));
+    // Third-person camera tracking: raised target height for colossal Kurama (8.3m height)
+    const targetHeight = isKyuubi ? 5.2 : 1.5;
+    const targetPos = this.naruto.position.clone().add(new THREE.Vector3(0, targetHeight, 0));
 
     const cx = targetPos.x + Math.sin(this.camYaw) * Math.cos(this.camPitch) * this.camDistance;
     const cy = targetPos.y + Math.sin(this.camPitch) * this.camDistance;
@@ -519,11 +820,11 @@ class Game {
 
     const camPos = new THREE.Vector3(cx, cy, cz);
     if (this.city && this.city.resolveCameraPosition) {
-      this.city.resolveCameraPosition(targetPos, camPos, 0.5);
+      this.city.resolveCameraPosition(targetPos, camPos, isKyuubi ? 1.4 : 0.5);
     }
 
     this.camera.position.copy(camPos);
-    this.camera.lookAt(targetPos.clone().add(new THREE.Vector3(0, 0.2, 0)));
+    this.camera.lookAt(targetPos.clone().add(new THREE.Vector3(0, isKyuubi ? 0.8 : 0.2, 0)));
   }
 
   restart() {
@@ -540,8 +841,11 @@ class Game {
     this.fireballs.forEach(f => this.scene.remove(f.mesh));
     this.fireballs = [];
 
+    this.questManager.cancelQuest();
+    if (this.villagers) this.villagers.reset();
     this.naruto.reset();
-    this.startWave(1);
+    this.hud.updateQuestUI(this.questManager);
+    this.hud.updateWave(1, 0, this.kills, this.score);
   }
 
   animate() {
@@ -605,15 +909,37 @@ class Game {
     // Update Pickups
     for (let i = this.pickups.length - 1; i >= 0; i--) {
       const p = this.pickups[i];
-      p.update(dt, this.naruto);
+      p.update(dt, this.naruto, this.vfx, (pos, val) => {
+        this.hud.spawnGoldText(pos, val);
+      });
       if (p.isCollected) {
         this.pickups.splice(i, 1);
       }
     }
 
-    // Update City & VFX
-    this.city.update(dt);
-    this.vfx.update(dt, this.camera);
+    // Check Kakashi and Merchant Proximity Prompts
+    const nearKakashi = this.isNearKakashi();
+    this.hud.setQuestPromptVisible(nearKakashi && !this.isModalOpen());
+
+    const nearMerchant = this.isNearMerchant();
+    this.hud.setMerchantPromptVisible(nearMerchant && !this.isModalOpen() && !nearKakashi);
+
+    // Update Shinobi Radar Minimap
+    if (this.minimap) {
+      this.minimap.update(this.naruto, this.enemies, this.city, this.questManager);
+    }
+
+    // Dynamically center high-resolution shadow camera around player
+    if (this.naruto && this.sunLight && this.sunLightTarget) {
+      const np = this.naruto.position;
+      this.sunLightTarget.position.set(np.x, 0, np.z);
+      this.sunLight.position.set(np.x + 55, 115, np.z + 75);
+    }
+
+    // Update City, Villagers & VFX
+    this.city.update(dt, this.camera);
+    if (this.villagers) this.villagers.update(dt, this.naruto ? this.naruto.position : null);
+    this.vfx.update(dt, this.camera, this.naruto ? this.naruto.position : null);
     this.updateCamera(dt);
 
     // Hidden Chakra Spring healing & chakra restoration in the forest

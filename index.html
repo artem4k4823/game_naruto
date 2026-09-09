@@ -29,8 +29,9 @@
     <!-- Top Left: Naruto Status -->
     <div class="player-card">
       <div class="avatar-frame">
+        <div id="player-lvl-tag" class="ninja-lvl-tag">LVL 1</div>
         <div id="avatar-img" class="avatar-naruto"></div>
-        <div class="ninja-rank-tag">GENIN</div>
+        <div id="player-rank-tag" class="ninja-rank-tag">GENIN</div>
       </div>
       <div class="bars-container">
         <div class="bar-header">
@@ -53,25 +54,45 @@
           <div class="chakra-glow"></div>
         </div>
 
-        <!-- Kyuubi Mode Meter / Timer -->
-        <div id="kyuubi-status" class="kyuubi-badge hidden">
-          <span class="flame-icon">🔥</span>
-          <span class="kyuubi-text">NINE-TAILS CLOAK: <span id="kyuubi-timer">16s</span></span>
+        <!-- XP Bar -->
+        <div class="bar-header" style="margin-top: 6px;">
+          <span class="xp-label">EXP (経験値)</span>
+          <span class="xp-text" id="xp-value">0 / 100 XP</span>
+        </div>
+        <div class="bar-outer xp-bar">
+          <div class="bar-inner" id="xp-fill" style="width: 0%;"></div>
+          <div class="xp-glow"></div>
+        </div>
+
+        <!-- Status Badges Row -->
+        <div class="status-badges-row">
+          <div id="kyuubi-status" class="kyuubi-badge hidden">
+            <span class="flame-icon">🔥</span>
+            <span class="kyuubi-text">NINE-TAILS: <span id="kyuubi-timer">16s</span></span>
+          </div>
+          <div id="sage-status" class="sage-badge hidden">
+            <span class="sage-icon">🐸</span>
+            <span class="sage-text">SAGE MODE: <span id="sage-timer">25s</span></span>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Top Center: Wave & Objective Banner -->
-    <div class="wave-banner">
-      <div class="wave-title" id="wave-title">WAVE 1: SHINOBI INVASION</div>
-      <div class="wave-objective">
-        <span>VILLAINS REMAINING: </span>
-        <span class="highlight-num" id="enemies-count">0</span>
+    <!-- Top Center: Mission & Objective Banner -->
+    <div class="wave-banner" id="mission-banner">
+      <div class="wave-title" id="wave-title">МИРНЫЙ ПАТРУЛЬ КОНОХИ</div>
+      <div class="wave-objective" id="wave-objective">
+        <span id="objective-label">ВОЗЬМИТЕ МИССИЮ У КАКАШИ [F]</span>
+        <span class="highlight-num" id="enemies-count"></span>
       </div>
     </div>
 
     <!-- Top Right: Stats & Controls Quick Info -->
     <div class="top-right-panel">
+      <div class="stat-badge ryo-badge" id="ryo-badge" title="Валюта Рё (выпадает с врагов)">
+        <span class="stat-icon">🪙</span>
+        <span class="stat-val" id="ryo-val">0 РЁ</span>
+      </div>
       <div class="stat-badge">
         <span class="stat-icon">⚔️</span>
         <span class="stat-val" id="kill-count">0 K.O.</span>
@@ -80,6 +101,13 @@
         <span class="stat-icon">⭐</span>
         <span class="stat-val" id="score-val">0 PTS</span>
       </div>
+      <!-- Skill Tree Button -->
+      <button id="btn-skills" class="hud-btn skills-tree-btn" title="Древо прокачки техник и навыков [K / U]">
+        <span class="btn-skills-icon">📜</span>
+        <span class="btn-skills-label">НАВЫКИ [K]</span>
+        <span id="sp-badge" class="sp-badge hidden">0 SP</span>
+      </button>
+
       <div class="volume-panel" id="volume-panel">
         <button id="btn-audio" class="hud-btn" title="Включить / выключить звук">🔊</button>
         <div class="volume-slider-box">
@@ -91,6 +119,12 @@
         </div>
       </div>
       <button id="btn-help" class="hud-btn" title="Управление и подсказки">❓</button>
+    </div>
+
+    <!-- Minimap Radar Overlay -->
+    <div id="minimap-container" class="minimap-frame">
+      <canvas id="minimap-canvas" width="180" height="180"></canvas>
+      <div class="minimap-label">КОНОХА (KONOHA)</div>
     </div>
 
     <!-- Center Left: Combo Counter -->
@@ -105,8 +139,34 @@
       <h1 id="announcement-text">ROUND 1</h1>
     </div>
 
+    <!-- Merchant Interaction Prompt Tooltip -->
+    <div id="merchant-prompt" class="merchant-prompt hidden">
+      <div class="prompt-icon">🏬</div>
+      <div class="prompt-info">
+        <div class="prompt-key">[F]</div>
+        <div class="prompt-text">Оружейная Лавка Торговца</div>
+      </div>
+    </div>
+
+    <!-- Quest NPC Interaction Prompt Tooltip -->
+    <div id="quest-prompt" class="merchant-prompt hidden" style="border-color: #00e5ff; box-shadow: 0 8px 30px rgba(0,0,0,0.7), 0 0 20px rgba(0,229,255,0.4);">
+      <div class="prompt-icon">📜</div>
+      <div class="prompt-info">
+        <div class="prompt-key" style="background: #0288d1;">[F]</div>
+        <div class="prompt-text">Поговорить с Какаши (Миссии)</div>
+      </div>
+    </div>
+
     <!-- Bottom Center: Jutsu Skill Hotbar -->
     <div class="skills-dock">
+      <!-- Weapon Slot: Fists / Katana -->
+      <div class="skill-slot weapon-slot" id="slot-weapon" title="Сменить оружие [X]">
+        <div class="skill-icon" id="weapon-icon">👊</div>
+        <div class="skill-key">X</div>
+        <div class="skill-cost" id="weapon-status-tag">КУЛАКИ</div>
+        <div class="skill-name" id="weapon-name">ТАЙДЗЮЦУ</div>
+      </div>
+
       <!-- Skill 1: Shuriken -->
       <div class="skill-slot" id="slot-shuriken" data-skill="shuriken">
         <div class="skill-icon icon-shuriken">🗡️</div>
@@ -143,12 +203,53 @@
         <div class="cooldown-overlay" id="cd-kyuubi"></div>
       </div>
 
-      <!-- Skill 5: Chakra Concentration -->
+      <!-- Skill 5: Rasenshuriken -->
+      <div class="skill-slot locked-skill" id="slot-rasenshuriken" data-skill="rasenshuriken" title="Футон: Рассенсюрикен [5 / T]">
+        <div class="skill-icon icon-rasenshuriken">🌀⚡</div>
+        <div class="skill-key">5 / T</div>
+        <div class="skill-cost">45 CH</div>
+        <div class="skill-name">RASENSHURIKEN</div>
+        <div class="cooldown-overlay" id="cd-rasenshuriken"></div>
+      </div>
+
+      <!-- Skill 6: Sage Mode -->
+      <div class="skill-slot locked-skill" id="slot-sage" data-skill="sage" title="Режим Мудреца Жабы [G]">
+        <div class="skill-icon icon-sage">🐸</div>
+        <div class="skill-key">G</div>
+        <div class="skill-cost">55 CH</div>
+        <div class="skill-name">SAGE MODE</div>
+        <div class="cooldown-overlay" id="cd-sage"></div>
+      </div>
+
+      <!-- Skill 7: Chakra Concentration -->
       <div class="skill-slot passive" id="slot-charge">
         <div class="skill-icon icon-charge">⚡</div>
         <div class="skill-key">C</div>
         <div class="skill-cost">HOLD</div>
         <div class="skill-name">CHARGE CHAKRA</div>
+      </div>
+    </div>
+
+    <!-- Kurama Beast Combat Action Bar -->
+    <div id="kurama-hud-bar" class="kurama-bar hidden">
+      <div class="kurama-hud-title">🔥 РЕЖИМ КУРАМЫ: ДЕВЯТИХВОСТЫЙ ДЖИНЧУРИКИ 🔥</div>
+      <div class="kurama-skills-row">
+        <div class="kurama-skill-item">
+          <span class="k-key">ЛКМ</span>
+          <span class="k-name">Удар когтями</span>
+        </div>
+        <div class="kurama-skill-item">
+          <span class="k-key">Q / 2</span>
+          <span class="k-name">Вихрь 9 хвостов</span>
+        </div>
+        <div class="kurama-skill-item">
+          <span class="k-key">C / 1</span>
+          <span class="k-name">Чакра-Рёв</span>
+        </div>
+        <div class="kurama-skill-item highlight">
+          <span class="k-key">E / 3</span>
+          <span class="k-name">Биджудама (Бомба Хвостатого)</span>
+        </div>
       </div>
     </div>
 
@@ -197,8 +298,24 @@
             <span class="key-desc">Паркур и прыжки по крышам</span>
           </div>
           <div class="control-item">
+            <span class="key-badge">X</span>
+            <span class="key-desc">Сменить оружие (Кулаки / Катана)</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">F</span>
+            <span class="key-desc">Лавка Торговца в Деревне</span>
+          </div>
+          <div class="control-item">
             <span class="key-badge">ЛКМ</span>
-            <span class="key-desc">Комбо Тайдзюцу (5 ударов + Финишер)</span>
+            <span class="key-desc">Атака (Комбо Тайдзюцу / Кэндзюцу)</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">Shift + ЛКМ</span>
+            <span class="key-desc">Стремительный выпад на бегу (Спринт-атака)</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">Space + ЛКМ</span>
+            <span class="key-desc">Удар в прыжке (Воздушное сокрушение)</span>
           </div>
           <div class="control-item">
             <span class="key-badge">1 / ПКМ</span>
@@ -221,13 +338,25 @@
             <span class="key-desc">Быстрый заряд Чакры</span>
           </div>
           <div class="control-item">
+            <span class="key-badge">5 / T</span>
+            <span class="key-desc">Футон: Рассенсюрикен (45 Чакра)</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">G</span>
+            <span class="key-desc">Режим Мудреца Жабы (55 Чакра)</span>
+          </div>
+          <div class="control-item">
+            <span class="key-badge">K / U</span>
+            <span class="key-desc">Древо техник шиноби (Прокачка)</span>
+          </div>
+          <div class="control-item">
             <span class="key-badge">ESC</span>
             <span class="key-desc">Пауза / Освободить курсор</span>
           </div>
         </div>
 
         <div class="tips-box">
-          <p>💡 <strong>Паркур в Конохе:</strong> Беги прямо в стену любого здания или на скалу Хокаге, чтобы <strong>взбегать вверх по стене</strong>! Нажав <strong>[Space]</strong> на стене, Наруто отпрыгнет назад с сальто. Из поверженных врагов выпадает <strong>Рамен Ичираку 🍜</strong> и <strong>Свитки 📜</strong>!</p>
+          <p>💡 <strong>Прокачка и Оружие:</strong> За победу над врагами Наруто получает <strong>опыт (EXP)</strong> и <strong>монеты Рё 🪙</strong>! Открывай <strong>Древо навыков [K]</strong>, чтобы изучить <strong>Рассенсюрикен</strong>, <strong>Режим Мудреца</strong> и <strong>Оодама Расенган</strong>. У торговца в центре деревни <strong>[F]</strong> покупай Катану Ниндзя и эликсиры!</p>
         </div>
 
         <div class="modal-volume-box">
@@ -244,6 +373,449 @@
         <button id="btn-start" class="btn-action">ИГРАТЬ! DATTEBAYO!</button>
       </div>
       <div class="scroll-bottom"></div>
+    </div>
+  </div>
+
+  <!-- Shinobi Skill Tree Modal -->
+  <div id="skill-tree-modal" class="modal-overlay hidden">
+    <div class="scroll-modal skill-scroll-modal">
+      <div class="scroll-content skill-tree-content">
+        <h1 class="modal-title skill-modal-title">ДРЕВО ТЕХНИК ШИНОБИ</h1>
+        <p class="modal-subtitle">忍術の巻物 — Изучай легендарные техники Наруто за Очки Навыков (SP)</p>
+
+        <!-- Player Progression Overview Ribbon -->
+        <div class="skill-tree-header-ribbon">
+          <div class="skill-ribbon-item">
+            <span class="ribbon-label">УРОВЕНЬ:</span>
+            <span class="ribbon-val" id="skill-tree-lvl-val">LVL 1</span>
+          </div>
+          <div class="skill-ribbon-item">
+            <span class="ribbon-label">РАНГ ШИНОБИ:</span>
+            <span class="ribbon-val rank-highlight" id="skill-tree-rank-val">GENIN</span>
+          </div>
+          <div class="skill-ribbon-item sp-counter-badge">
+            <span class="ribbon-label">ДОСТУПНО SP:</span>
+            <span class="ribbon-val sp-highlight" id="skill-tree-sp-val">0 SP</span>
+          </div>
+        </div>
+
+        <div id="skill-alert" class="shop-alert hidden"></div>
+
+        <!-- 3 Branch Columns Container -->
+        <div class="skill-branches-container">
+          <!-- Branch 1: Futon & Rasengan Arts -->
+          <div class="skill-branch-col" id="branch-wind">
+            <div class="branch-header">
+              <div class="branch-icon">🌀</div>
+              <div class="branch-title-text">
+                <h3>СТИХИЯ ВЕТРА И РАСЕНГАН</h3>
+                <span>Мастерство вращения чакры</span>
+              </div>
+            </div>
+            <div class="branch-nodes-list">
+              <!-- Node 1: Chakra Focus -->
+              <div class="skill-node-card" data-skill-id="chakra_focus" id="node-chakra_focus">
+                <div class="node-icon-box">⚡</div>
+                <div class="node-body">
+                  <div class="node-title-row">
+                    <span class="node-name">Концентрация Чакры</span>
+                    <span class="node-tag">Пассивный</span>
+                  </div>
+                  <p class="node-desc">+50 к Максимальной Чакре (200 CH) и ускорение естественного восстановления.</p>
+                  <div class="node-footer">
+                    <span class="node-status-text">Базовый навык</span>
+                    <button class="btn-unlock-skill" data-skill-id="chakra_focus">ИЗУЧИТЬ (1 SP)</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="branch-connector-line"></div>
+
+              <!-- Node 2: Oodama Rasengan -->
+              <div class="skill-node-card" data-skill-id="oodama_rasengan" id="node-oodama_rasengan">
+                <div class="node-icon-box">🔵</div>
+                <div class="node-body">
+                  <div class="node-title-row">
+                    <span class="node-name">Оодама Расенган</span>
+                    <span class="node-tag active-tag">Улучшение (3/E)</span>
+                  </div>
+                  <p class="node-desc">Огромная сфера чакры. Увеличивает размер на 90%, радиус взрыва до 4.2м и урон до 280+!</p>
+                  <div class="node-footer">
+                    <span class="node-status-text req-text">Требует: Концентрация Чакры</span>
+                    <button class="btn-unlock-skill" data-skill-id="oodama_rasengan">ИЗУЧИТЬ (1 SP)</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="branch-connector-line"></div>
+
+              <!-- Node 3: Rasenshuriken -->
+              <div class="skill-node-card" data-skill-id="rasenshuriken" id="node-rasenshuriken">
+                <div class="node-icon-box">🌪️</div>
+                <div class="node-body">
+                  <div class="node-title-row">
+                    <span class="node-name">Футон: Рассенсюрикен</span>
+                    <span class="node-tag ultimate-tag">Техника S-ранга [5/T]</span>
+                  </div>
+                  <p class="node-desc">Метательный диск чакры ветра со свистом рассекает воздух, затягивает врагов в воронку и детонирует на 480 урона!</p>
+                  <div class="node-footer">
+                    <span class="node-status-text req-text">Требует: Оодама Расенган</span>
+                    <button class="btn-unlock-skill" data-skill-id="rasenshuriken">ИЗУЧИТЬ (1 SP)</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Branch 2: Taijutsu & Blade Mastery -->
+          <div class="skill-branch-col" id="branch-blade">
+            <div class="branch-header">
+              <div class="branch-icon">👥</div>
+              <div class="branch-title-text">
+                <h3>КЛОНЫ И КЭНДЗЮЦУ</h3>
+                <span>Искусство ближнего боя</span>
+              </div>
+            </div>
+            <div class="branch-nodes-list">
+              <!-- Node 1: Razor Edge -->
+              <div class="skill-node-card" data-skill-id="razor_edge" id="node-razor_edge">
+                <div class="node-icon-box">🗡️</div>
+                <div class="node-body">
+                  <div class="node-title-row">
+                    <span class="node-name">Острое Лезвие</span>
+                    <span class="node-tag">Пассивный</span>
+                  </div>
+                  <p class="node-desc">+35% ко всему урону Катаны Ниндзя и Сюрикенов.</p>
+                  <div class="node-footer">
+                    <span class="node-status-text">Базовый навык</span>
+                    <button class="btn-unlock-skill" data-skill-id="razor_edge">ИЗУЧИТЬ (1 SP)</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="branch-connector-line"></div>
+
+              <!-- Node 2: Tajuu Clones -->
+              <div class="skill-node-card" data-skill-id="tajuu_clones" id="node-tajuu_clones">
+                <div class="node-icon-box">👥👥</div>
+                <div class="node-body">
+                  <div class="node-title-row">
+                    <span class="node-name">Таджу Каге Буншин</span>
+                    <span class="node-tag active-tag">Улучшение (2/Q)</span>
+                  </div>
+                  <p class="node-desc">Множественное теневое клонирование: призывает 4 свирепых боевых клона вместо 2!</p>
+                  <div class="node-footer">
+                    <span class="node-status-text req-text">Требует: Острое Лезвие</span>
+                    <button class="btn-unlock-skill" data-skill-id="tajuu_clones">ИЗУЧИТЬ (1 SP)</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="branch-connector-line"></div>
+
+              <!-- Node 3: Uzumaki Rendan -->
+              <div class="skill-node-card" data-skill-id="uzumaki_rendan" id="node-uzumaki_rendan">
+                <div class="node-icon-box">💥</div>
+                <div class="node-body">
+                  <div class="node-title-row">
+                    <span class="node-name">Комбо Узумаки Рендан</span>
+                    <span class="node-tag">Пассивный комбо-перк</span>
+                  </div>
+                  <p class="node-desc">Финальные удары комбо создают вихревую ударную волну (AoE) и восстанавливают +20 HP за пораженного врага!</p>
+                  <div class="node-footer">
+                    <span class="node-status-text req-text">Требует: Таджу Каге Буншин</span>
+                    <button class="btn-unlock-skill" data-skill-id="uzumaki_rendan">ИЗУЧИТЬ (1 SP)</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Branch 3: Sage Mode & Nine-Tails -->
+          <div class="skill-branch-col" id="branch-sage">
+            <div class="branch-header">
+              <div class="branch-icon">🐸</div>
+              <div class="branch-title-text">
+                <h3>СЕНДЗЮЦУ И ДЕВЯТИХВОСТЫЙ</h3>
+                <span>Природная энергия & Кьюби</span>
+              </div>
+            </div>
+            <div class="branch-nodes-list">
+              <!-- Node 1: Uzumaki Body -->
+              <div class="skill-node-card" data-skill-id="uzumaki_body" id="node-uzumaki_body">
+                <div class="node-icon-box">❤️</div>
+                <div class="node-body">
+                  <div class="node-title-row">
+                    <span class="node-name">Тело Клана Узумаки</span>
+                    <span class="node-tag">Пассивный</span>
+                  </div>
+                  <p class="node-desc">+150 к Максимальному Здоровью (650 HP) и +15% к базовой скорости передвижения.</p>
+                  <div class="node-footer">
+                    <span class="node-status-text">Базовый навык</span>
+                    <button class="btn-unlock-skill" data-skill-id="uzumaki_body">ИЗУЧИТЬ (1 SP)</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="branch-connector-line"></div>
+
+              <!-- Node 2: Kyuubi Mantle II -->
+              <div class="skill-node-card" data-skill-id="kyuubi_mantle_2" id="node-kyuubi_mantle_2">
+                <div class="node-icon-box">🦊</div>
+                <div class="node-body">
+                  <div class="node-title-row">
+                    <span class="node-name">Мантия Девятихвостого II</span>
+                    <span class="node-tag active-tag">Улучшение (4/R)</span>
+                  </div>
+                  <p class="node-desc">Увеличивает длительность Режима Лиса с 18 до 26 секунд и усиливает ревущую огненную ауру.</p>
+                  <div class="node-footer">
+                    <span class="node-status-text req-text">Требует: Тело Клана Узумаки</span>
+                    <button class="btn-unlock-skill" data-skill-id="kyuubi_mantle_2">ИЗУЧИТЬ (1 SP)</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="branch-connector-line"></div>
+
+              <!-- Node 3: Sage Mode -->
+              <div class="skill-node-card" data-skill-id="sage_mode" id="node-sage_mode">
+                <div class="node-icon-box">👁️</div>
+                <div class="node-body">
+                  <div class="node-title-row">
+                    <span class="node-name">Режим Мудреца (Сеннин)</span>
+                    <span class="node-tag sage-tag">Сверх-режим [G]</span>
+                  </div>
+                  <p class="node-desc">Оранжевые тени Мудреца Жабы вокруг глаз, суперпрыжки, вампиризм +15 HP за каждый удар и +45% ко всему урону!</p>
+                  <div class="node-footer">
+                    <span class="node-status-text req-text">Требует: Мантия Лиса II</span>
+                    <button class="btn-unlock-skill" data-skill-id="sage_mode">ИЗУЧИТЬ (1 SP)</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="shop-footer" style="margin-top: 20px;">
+          <button id="btn-close-skills" class="btn-action" style="font-size: 20px; padding: 10px 36px;">ЗАКРЫТЬ СВИТОК [K]</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Konoha Mission Office / Quest Modal -->
+  <div id="quest-modal" class="modal-overlay hidden">
+    <div class="scroll-modal quest-scroll-modal">
+      <div class="scroll-content quest-scroll-content">
+        <h1 class="modal-title quest-title">КАНЦЕЛЯРИЯ МИССИЙ КОНОХИ</h1>
+        <p class="modal-subtitle">木ノ葉の任務 — Получай задания у Какаши Хатаке и защищай деревню</p>
+
+        <!-- Kakashi Dialog Banner -->
+        <div class="kakashi-dialog-card">
+          <div class="kakashi-avatar"></div>
+          <div class="kakashi-speech">
+            <span class="kakashi-name-tag">КАКАШИ ХАТАКЕ</span>
+            <p class="kakashi-dialog-quote" id="kakashi-dialog-text">«Здравствуй, Наруто. За пределами деревни активизировались банды отступников и шпионы Акацуки. Выбери миссию по силам и защити Деревню Скрытого Листа!»</p>
+          </div>
+        </div>
+
+        <!-- Active Quest Banner (if on mission) -->
+        <div id="active-quest-ribbon" class="active-quest-ribbon hidden">
+          <div class="active-quest-details">
+            <span class="ribbon-label">ТЕКУЩАЯ МИССИЯ:</span>
+            <span class="active-quest-title" id="active-quest-title-display">Патруль Южных Ворот</span>
+            <span class="active-quest-counter" id="active-quest-counter-display">Повержено: 0 / 3</span>
+          </div>
+          <button id="btn-cancel-mission" class="btn-cancel-mission">ОТМЕНИТЬ МИССИЮ</button>
+        </div>
+
+        <div id="quest-alert" class="shop-alert hidden"></div>
+
+        <!-- Missions List -->
+        <div class="missions-list" id="missions-list">
+          <!-- Mission D -->
+          <div class="mission-card" data-quest-id="quest_d">
+            <div class="mission-rank-badge rank-d">РАНГ D</div>
+            <div class="mission-card-body">
+              <div class="mission-card-header">
+                <h3 class="mission-card-title">Патруль Южных Ворот</h3>
+                <span class="mission-location-tag">📍 Южные Ворота Конохи</span>
+              </div>
+              <p class="mission-card-desc">Шайка ниндзя-отступников замечена около южных ворот деревни. Обезвредь лазутчиков и защити главный вход в Коноху!</p>
+              <div class="mission-card-footer">
+                <div class="mission-targets-tag">🎯 Цели: 3 Ниндзя-Отступника</div>
+                <div class="mission-rewards">
+                  <span class="reward-ryo">🪙 60 Рё</span>
+                  <span class="reward-xp">⭐ 140 EXP</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn-accept-mission" data-quest-id="quest_d">ПРИНЯТЬ МИССИЮ</button>
+          </div>
+
+          <!-- Mission C -->
+          <div class="mission-card" data-quest-id="quest_c">
+            <div class="mission-rank-badge rank-c">РАНГ C</div>
+            <div class="mission-card-body">
+              <div class="mission-card-header">
+                <h3 class="mission-card-title">Святилище Тории и Полигон 44</h3>
+                <span class="mission-location-tag">📍 Святилище Тории в Великом Лесу</span>
+              </div>
+              <p class="mission-card-desc">Мятежные шиноби устроили засаду на тренировочном полигоне в глубине великого леса. Зачисти святилище Тории!</p>
+              <div class="mission-card-footer">
+                <div class="mission-targets-tag">🎯 Цели: 5 Ниндзя-Отступников</div>
+                <div class="mission-rewards">
+                  <span class="reward-ryo">🪙 120 Рё</span>
+                  <span class="reward-xp">⭐ 300 EXP</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn-accept-mission" data-quest-id="quest_c">ПРИНЯТЬ МИССИЮ</button>
+          </div>
+
+          <!-- Mission B -->
+          <div class="mission-card" data-quest-id="quest_b">
+            <div class="mission-rank-badge rank-b">РАНГ B</div>
+            <div class="mission-card-body">
+              <div class="mission-card-header">
+                <h3 class="mission-card-title">Засада у Ущелья Водопада</h3>
+                <span class="mission-location-tag">📍 Ущелье Водопада & Подвесной Мост</span>
+              </div>
+              <p class="mission-card-desc">Шпионы Акацуки объединились с отступниками и заблокировали подвесной мост у водопада. Ликвидируй угрозу!</p>
+              <div class="mission-card-footer">
+                <div class="mission-targets-tag">🎯 Цели: 4 Отступника + 2 Акацуки</div>
+                <div class="mission-rewards">
+                  <span class="reward-ryo">🪙 220 Рё</span>
+                  <span class="reward-xp">⭐ 550 EXP</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn-accept-mission" data-quest-id="quest_b">ПРИНЯТЬ МИССИЮ</button>
+          </div>
+
+          <!-- Mission A -->
+          <div class="mission-card" data-quest-id="quest_a">
+            <div class="mission-rank-badge rank-a">РАНГ A</div>
+            <div class="mission-card-body">
+              <div class="mission-card-header">
+                <h3 class="mission-card-title">Штурм Дозорной Вышки</h3>
+                <span class="mission-location-tag">📍 Дозорная Вышка в Лесу</span>
+              </div>
+              <p class="mission-card-desc">Ударный отряд Акацуки захватил дозорную вышку на востоке леса, готовя наступление на Коноху. Выбей врагов с позиции!</p>
+              <div class="mission-card-footer">
+                <div class="mission-targets-tag">🎯 Цели: 4 Отступника + 4 Акацуки</div>
+                <div class="mission-rewards">
+                  <span class="reward-ryo">🪙 380 Рё</span>
+                  <span class="reward-xp">⭐ 900 EXP</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn-accept-mission" data-quest-id="quest_a">ПРИНЯТЬ МИССИЮ</button>
+          </div>
+
+          <!-- Mission S -->
+          <div class="mission-card" data-quest-id="quest_s">
+            <div class="mission-rank-badge rank-s">РАНГ S</div>
+            <div class="mission-card-body">
+              <div class="mission-card-header">
+                <h3 class="mission-card-title">Битва на Площади Хокаге</h3>
+                <span class="mission-location-tag">📍 Главная Площадь Хокаге</span>
+              </div>
+              <p class="mission-card-desc">Опаснейшие командиры Акацуки прорвались в самое сердце деревни прямо к Резиденции Хокаге! Сразись и защити Коноху!</p>
+              <div class="mission-card-footer">
+                <div class="mission-targets-tag">🎯 Цели: 6 Командиров Акацуки</div>
+                <div class="mission-rewards">
+                  <span class="reward-ryo">🪙 600 Рё</span>
+                  <span class="reward-xp">⭐ 1500 EXP</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn-accept-mission" data-quest-id="quest_s">ПРИНЯТЬ МИССИЮ</button>
+          </div>
+        </div>
+
+        <div class="shop-footer" style="margin-top: 20px;">
+          <button id="btn-close-quest" class="btn-action" style="font-size: 20px; padding: 10px 36px;">ЗАКРЫТЬ ДОСКУ [ESC / F]</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weapon Shop Modal -->
+  <div id="shop-modal" class="modal-overlay hidden">
+    <div class="scroll-modal shop-scroll-modal">
+      <div class="scroll-content">
+        <h1 class="modal-title shop-title">ОРУЖЕЙНАЯ ЛАВКА КОНОХИ</h1>
+        <p class="modal-subtitle">Торговец оружием: <em>«Добро пожаловать в Коноху! Выбирай лучшее снаряжение шиноби!»</em></p>
+
+        <!-- Balance Display -->
+        <div class="shop-balance-bar">
+          <span>ТВОЙ БАЛАНС:</span>
+          <span class="shop-ryo-display">🪙 <span id="shop-balance-val">0</span> РЁ</span>
+        </div>
+
+        <!-- Shop Notification Banner -->
+        <div id="shop-alert" class="shop-alert hidden"></div>
+
+        <!-- Shop Items Grid -->
+        <div class="shop-items-grid">
+          <!-- Item 1: Katana -->
+          <div class="shop-item-card" id="shop-card-katana">
+            <div class="shop-item-icon">🗡️</div>
+            <div class="shop-item-details">
+              <div class="shop-item-header">
+                <span class="shop-item-name">КАТАНА НИНДЗЯ</span>
+                <span class="shop-item-price">60 Рё</span>
+              </div>
+              <p class="shop-item-desc">Легендарный клинок шиноби. Открывает комбо ударов, рубящий выпад на бегу (Shift+ЛКМ) и сокрушительный удар в прыжке (Space+ЛКМ)!</p>
+            </div>
+            <button class="shop-btn-buy" id="btn-buy-katana">КУПИТЬ (60 РЁ)</button>
+          </div>
+
+          <!-- Item 2: Blade Sharpener -->
+          <div class="shop-item-card" id="shop-card-sharpener">
+            <div class="shop-item-icon">✨</div>
+            <div class="shop-item-details">
+              <div class="shop-item-header">
+                <span class="shop-item-name">РУНИЧЕСКАЯ ЗАТОЧКА</span>
+                <span class="shop-item-price">120 Рё</span>
+              </div>
+              <p class="shop-item-desc">Полировка и магическая заточка стали. Увеличивает урон Катаны Ниндзя на +35%.</p>
+            </div>
+            <button class="shop-btn-buy" id="btn-buy-sharpener">КУПИТЬ (120 РЁ)</button>
+          </div>
+
+          <!-- Item 3: Explosive Kunai Pouch -->
+          <div class="shop-item-card" id="shop-card-kunai">
+            <div class="shop-item-icon">💣</div>
+            <div class="shop-item-details">
+              <div class="shop-item-header">
+                <span class="shop-item-name">ВЗРЫВНЫЕ СВИТКИ КУНАЕВ</span>
+                <span class="shop-item-price">80 Рё</span>
+              </div>
+              <p class="shop-item-desc">Прикрепляет взрывные свитки к сюрикенам. Увеличивает урон сюрикенов на +50%.</p>
+            </div>
+            <button class="shop-btn-buy" id="btn-buy-kunai">КУПИТЬ (80 РЁ)</button>
+          </div>
+
+          <!-- Item 4: Sage Elixir -->
+          <div class="shop-item-card" id="shop-card-elixir">
+            <div class="shop-item-icon">🧪</div>
+            <div class="shop-item-details">
+              <div class="shop-item-header">
+                <span class="shop-item-name">ЭЛИКСИР МУДРЕЦА</span>
+                <span class="shop-item-price">40 Рё</span>
+              </div>
+              <p class="shop-item-desc">Мгновенно восстанавливает полное здоровье (500 HP) и запас Чакры (150 CH). Можно брать повторно!</p>
+            </div>
+            <button class="shop-btn-buy" id="btn-buy-elixir">КУПИТЬ (40 РЁ)</button>
+          </div>
+        </div>
+
+        <div class="shop-footer">
+          <button id="btn-close-shop" class="btn-action" style="font-size: 20px; padding: 10px 32px;">ЗАКРЫТЬ ЛАВКУ</button>
+        </div>
+      </div>
     </div>
   </div>
 

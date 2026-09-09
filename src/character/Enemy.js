@@ -678,12 +678,13 @@ export class Enemy {
   }
 }
 
-// Interactive Pickups: Ichiraku Ramen & Chakra Scroll
+// Interactive Pickups: Ichiraku Ramen, Chakra Scroll & Golden Ryo Coins
 export class PickupItem {
-  constructor(scene, pos, type = 'ramen') {
+  constructor(scene, pos, type = 'ramen', value = 25) {
     this.scene = scene;
     this.pos = pos.clone().setY(0.75);
     this.type = type;
+    this.value = value;
     this.isCollected = false;
 
     this.buildModel();
@@ -710,6 +711,46 @@ export class PickupItem {
       stick.rotation.z = 0.7;
 
       this.group.add(bowl, noodles, stick);
+    } else if (this.type === 'ryo') {
+      // Ancient Shinobi Golden Ryo (Ryō) Oval / Round Coin
+      const goldMat = createToonMaterial(0xffd700, { roughness: 0.2 });
+      const rimMat = createToonMaterial(0xffaa00, { roughness: 0.3 });
+      const darkGoldMat = createToonMaterial(0xb8860b);
+
+      const coinGroup = new THREE.Group();
+      // Main Coin Disc
+      const coinGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.06, 24);
+      coinGeo.rotateX(Math.PI / 2);
+      const coinMesh = new THREE.Mesh(coinGeo, goldMat);
+
+      // Outer raised rim
+      const rimGeo = new THREE.TorusGeometry(0.33, 0.035, 8, 24);
+      const rimMesh = new THREE.Mesh(rimGeo, rimMat);
+
+      // Traditional center square hole (ancient Mon / Ryo currency)
+      const hole = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.07), darkGoldMat);
+
+      // Engraved Shinobi leaf marks on front and back
+      const markGeo = new THREE.ConeGeometry(0.06, 0.12, 6);
+      const mark1 = new THREE.Mesh(markGeo, darkGoldMat);
+      mark1.position.set(0, 0.18, 0.035);
+      const mark2 = new THREE.Mesh(markGeo, darkGoldMat);
+      mark2.position.set(0, -0.18, 0.035);
+      mark2.rotation.z = Math.PI;
+
+      coinGroup.add(coinMesh, rimMesh, hole, mark1, mark2);
+      this.group.add(coinGroup);
+
+      // Sparkling aura glow
+      const haloGeo = new THREE.SphereGeometry(0.46, 12, 12);
+      const haloMat = new THREE.MeshBasicMaterial({
+        color: 0xffea00,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.28
+      });
+      this.halo = new THREE.Mesh(haloGeo, haloMat);
+      this.group.add(this.halo);
     } else {
       const rollGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.7, 16);
       const rollMat = createToonMaterial(0x00e5ff);
@@ -731,17 +772,43 @@ export class PickupItem {
     this.scene.add(this.group);
   }
 
-  update(dt, player) {
+  update(dt, player, vfx, onCollectCallback) {
     if (this.isCollected) return;
 
     const time = performance.now() * 0.003;
-    this.group.position.y = this.pos.y + Math.sin(time * 2.5) * 0.15;
-    this.group.rotation.y += 2.2 * dt;
+    this.group.position.y = this.pos.y + Math.sin(time * 2.8) * 0.14;
+    this.group.rotation.y += (this.type === 'ryo' ? 3.4 : 2.2) * dt;
 
-    if (player.position.distanceTo(this.group.position) < 1.8) {
+    if (this.halo) {
+      this.halo.rotation.x += 1.5 * dt;
+      this.halo.rotation.z += 1.8 * dt;
+    }
+
+    const dist = player.position.distanceTo(this.group.position);
+
+    // Magnetic pull towards player when close
+    if (dist < 4.0 && dist > 1.2) {
+      const pullDir = player.position.clone().add(new THREE.Vector3(0, 0.8, 0)).sub(this.group.position).normalize();
+      this.group.position.addScaledVector(pullDir, 6.5 * dt);
+    }
+
+    if (dist < 1.8) {
       this.isCollected = true;
       if (this.type === 'ramen') {
         player.heal(80);
+      } else if (this.type === 'ryo') {
+        if (player.addRyo) {
+          player.addRyo(this.value);
+        } else {
+          player.ryo = (player.ryo || 0) + this.value;
+        }
+        sound.playCoinPickup();
+        if (vfx && vfx.spawnCoinSparkles) {
+          vfx.spawnCoinSparkles(this.group.position);
+        }
+        if (onCollectCallback) {
+          onCollectCallback(this.group.position, this.value);
+        }
       } else {
         player.addChakra(75);
       }

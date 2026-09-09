@@ -1,22 +1,25 @@
 // Konoha (Hidden Leaf Village) - Ultra-Atmospheric Anime City with Perimeter Fortress Walls, Dense Multi-Story Districts, Cables, and Rooftop Bridges
 import * as THREE from 'three';
-import { createToonMaterial } from '../vfx/AnimeVFX.js';
+import { createToonMaterial, createAnimeWaterMaterial } from '../vfx/AnimeVFX.js';
 
 export class KonohaCity {
-  constructor(scene) {
+  constructor(scene, vfx = null) {
     this.scene = scene;
+    this.vfx = vfx;
     this.buildings = [];
     this.clouds = [];
     this.trainingLogs = [];
     this.pickups = [];
 
     // World Dimensions (Village + Expansive Great Shinobi Outer Forest)
-    this.cityWidth = 190;
+    this.cityWidth = 260; // Expanded to 260m for dense new districts!
     this.cityDepth = 200;
     this.forestMinZ = 94;
     this.forestMaxZ = 345;
-    this.worldWidth = 460;
+    this.worldWidth = 520;
     this.chakraSpringPos = new THREE.Vector3(-40, 0.4, 270);
+    this.waterfallPos = new THREE.Vector3(-135, 1.0, 193);
+    this.toriiPos = new THREE.Vector3(18, 1.2, 210);
 
     this.buildTerrainAndRiver();
     this.buildOuterDefensiveWalls();
@@ -24,9 +27,14 @@ export class KonohaCity {
     this.buildHokageMountain();
     this.buildHokageTowerPlaza();
     this.buildIchirakuRamenComplex();
+    this.buildWeaponShopAndMerchant();
+    this.buildMissionDeskAndKakashi();
     this.buildDenseDistricts();
     this.buildOverheadWiresAndLanterns();
     this.buildStreetMarketAndProps();
+    this.buildSakuraTrees();
+    this.buildStoneLanternsAndBenches();
+    this.buildBarrelsCratesAndProps();
     this.buildTrainingLogsYard();
     this.buildOuterShinobiForest();
     this.buildForestRiverAndWaterfall();
@@ -65,6 +73,17 @@ export class KonohaCity {
     ave.receiveShadow = true;
     this.scene.add(ave);
 
+    // Stone Curbs along Main Avenue
+    const curbMat = createToonMaterial(0x8d6e63);
+    const curbGeo = new THREE.BoxGeometry(0.5, 0.25, 150);
+    const curbLeft = new THREE.Mesh(curbGeo, curbMat);
+    curbLeft.position.set(-7.1, 0.1, 10);
+    curbLeft.receiveShadow = true;
+    const curbRight = new THREE.Mesh(curbGeo, curbMat);
+    curbRight.position.set(7.1, 0.1, 10);
+    curbRight.receiveShadow = true;
+    this.scene.add(curbLeft, curbRight);
+
     // Main Forest Trail (continues south through the Grand Gate out into the wild forest)
     const trailMat = createToonMaterial(0x795548, { roughness: 0.85 }); // Beaten dirt/clay forest path
     const forestTrailGeo = new THREE.PlaneGeometry(10, 160);
@@ -88,30 +107,87 @@ export class KonohaCity {
     eastTrail.position.set(65, 0.016, 175);
     this.scene.add(eastTrail);
 
-    // Cross Streets inside Konoha
-    const crossGeo1 = new THREE.PlaneGeometry(140, 10);
-    const cross1 = new THREE.Mesh(crossGeo1, aveMat);
+    // Cross Streets and Side Avenues inside expanded Konoha Village
+    const crossGeoWide = new THREE.PlaneGeometry(230, 9);
+    const cross1 = new THREE.Mesh(crossGeoWide, aveMat);
     cross1.rotation.x = -Math.PI / 2;
     cross1.position.set(0, 0.02, 25);
 
-    const cross2 = new THREE.Mesh(crossGeo1, aveMat);
+    const cross2 = new THREE.Mesh(crossGeoWide, aveMat);
     cross2.rotation.x = -Math.PI / 2;
     cross2.position.set(0, 0.02, -22);
 
-    const cross3 = new THREE.PlaneGeometry(120, 8);
-    const cross3Mesh = new THREE.Mesh(cross3, aveMat);
-    cross3Mesh.rotation.x = -Math.PI / 2;
-    cross3Mesh.position.set(0, 0.02, 60);
+    const cross3 = new THREE.Mesh(crossGeoWide, aveMat);
+    cross3.rotation.x = -Math.PI / 2;
+    cross3.position.set(0, 0.02, 60);
 
-    this.scene.add(cross1, cross2, cross3Mesh);
+    const crossSouthLane = new THREE.Mesh(new THREE.PlaneGeometry(210, 7), aveMat);
+    crossSouthLane.rotation.x = -Math.PI / 2;
+    crossSouthLane.position.set(0, 0.02, 80);
 
-    // Canal River through the village
+    // East Clan Avenue (Uchiha District Main Street)
+    const eastAveGeo = new THREE.PlaneGeometry(9, 140);
+    const eastAve = new THREE.Mesh(eastAveGeo, aveMat);
+    eastAve.rotation.x = -Math.PI / 2;
+    eastAve.position.set(52, 0.019, 12);
+
+    // West Academy Avenue (Training & Medical District Main Street)
+    const westAveGeo = new THREE.PlaneGeometry(9, 140);
+    const westAve = new THREE.Mesh(westAveGeo, aveMat);
+    westAve.rotation.x = -Math.PI / 2;
+    westAve.position.set(-52, 0.019, 12);
+
+    this.scene.add(cross1, cross2, cross3, crossSouthLane, eastAve, westAve);
+
+    // Canal River through the village - animated anime water shader
     const riverGeo = new THREE.PlaneGeometry(11, 165);
-    const riverMat = createToonMaterial(0x0288d1, { roughness: 0.15 });
+    const riverMat = createAnimeWaterMaterial();
     const river = new THREE.Mesh(riverGeo, riverMat);
     river.rotation.x = -Math.PI / 2;
     river.position.set(-38, 0.015, 10);
+    river.receiveShadow = true;
     this.scene.add(river);
+
+    // Stone Embankment walls lining both sides of the canal
+    const stoneWallMat = createToonMaterial(0x78909c, { roughness: 0.7 });
+    const canalWallGeo = new THREE.BoxGeometry(0.7, 0.55, 165);
+    const wallL = new THREE.Mesh(canalWallGeo, stoneWallMat);
+    wallL.position.set(-38 - 5.6, 0.22, 10);
+    wallL.castShadow = true;
+    wallL.receiveShadow = true;
+    const wallR = new THREE.Mesh(canalWallGeo, stoneWallMat);
+    wallR.position.set(-38 + 5.6, 0.22, 10);
+    wallR.castShadow = true;
+    wallR.receiveShadow = true;
+    this.scene.add(wallL, wallR);
+
+    // Floating Water Lilies & Lotus pads on the canal surface
+    const padMat = createToonMaterial(0x2e7d32);
+    const flowerMat = createToonMaterial(0xffffff);
+    const flowerPinkMat = createToonMaterial(0xf48fb1);
+    const padGeo = new THREE.CircleGeometry(0.65, 8);
+    padGeo.rotateX(-Math.PI / 2);
+
+    const lotusOffsets = [
+      { x: -39, z: -15 }, { x: -37, z: -13 }, { x: -38, z: 2 },
+      { x: -36.5, z: 8 }, { x: -39.2, z: 35 }, { x: -37.5, z: 42 },
+      { x: -38.5, z: 75 }, { x: -36.8, z: 80 }
+    ];
+
+    lotusOffsets.forEach((lp, i) => {
+      const lily = new THREE.Mesh(padGeo, padMat);
+      lily.position.set(lp.x, 0.035, lp.z);
+      lily.rotation.y = i * 1.3;
+
+      // Blossom
+      const blossom = new THREE.Mesh(
+        new THREE.ConeGeometry(0.22, 0.25, 6),
+        (i % 2 === 0) ? flowerMat : flowerPinkMat
+      );
+      blossom.position.set(0, 0.12, 0);
+      lily.add(blossom);
+      this.scene.add(lily);
+    });
 
     // Arched Bridges across canal
     this.buildArchedBridge(-38, 25);
@@ -124,18 +200,348 @@ export class KonohaCity {
     bridge.position.set(x, 0, z);
 
     const redMat = createToonMaterial(0xb71c1c);
-    const woodMat = createToonMaterial(0x795548);
+    const darkWoodMat = createToonMaterial(0x4e342e);
+    const deckWoodMat = createToonMaterial(0x8d6e63);
+    const goldMat = createToonMaterial(0xffb300);
 
-    const span = new THREE.Mesh(new THREE.BoxGeometry(14, 0.4, 9), woodMat);
+    // Deck span
+    const span = new THREE.Mesh(new THREE.BoxGeometry(14, 0.4, 9), deckWoodMat);
     span.position.y = 0.6;
+    span.castShadow = true;
+    span.receiveShadow = true;
 
+    // Red lacquered railings
     const rail1 = new THREE.Mesh(new THREE.BoxGeometry(14, 0.9, 0.2), redMat);
     rail1.position.set(0, 1.1, 4.2);
+    rail1.castShadow = true;
     const rail2 = new THREE.Mesh(new THREE.BoxGeometry(14, 0.9, 0.2), redMat);
     rail2.position.set(0, 1.1, -4.2);
+    rail2.castShadow = true;
 
-    bridge.add(span, rail1, rail2);
+    // Corner pillar posts with ornate golden finials
+    [[-6.8, 4.2], [6.8, 4.2], [-6.8, -4.2], [6.8, -4.2]].forEach(([px, pz]) => {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.25, 1.4, 8), redMat);
+      post.position.set(px, 1.2, pz);
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), goldMat);
+      cap.position.set(px, 1.95, pz);
+      bridge.add(post, cap);
+    });
+
+    // Foundation timber supports
+    const pileL = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.2, 9), darkWoodMat);
+    pileL.position.set(-5.5, 0.1, 0);
+    const pileR = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.2, 9), darkWoodMat);
+    pileR.position.set(5.5, 0.1, 0);
+
+    bridge.add(span, rail1, rail2, pileL, pileR);
     this.scene.add(bridge);
+  }
+
+  buildSakuraTrees() {
+    const sakuraGroup = new THREE.Group();
+
+    const trunkMat = createToonMaterial(0x3e2723, { roughness: 0.85 });
+    const blossomMats = [
+      createToonMaterial(0xf8bbd0), // Light pastel sakura
+      createToonMaterial(0xf48fb1), // Vibrant pink sakura
+      createToonMaterial(0xf06292), // Deep blush sakura
+      createToonMaterial(0xffcdd2)  // Soft blossom white-pink
+    ];
+
+    const createSakura = (x, z, scale = 1.0) => {
+      const tree = new THREE.Group();
+      tree.position.set(x, 0, z);
+
+      // Curved organic trunk (2 connected angled segments)
+      const h1 = 3.6 * scale;
+      const trunk1 = new THREE.Mesh(new THREE.CylinderGeometry(0.6 * scale, 0.9 * scale, h1, 10), trunkMat);
+      trunk1.position.set(0, h1 / 2, 0);
+      trunk1.rotation.z = 0.08;
+      trunk1.castShadow = true;
+      tree.add(trunk1);
+
+      const h2 = 3.2 * scale;
+      const trunk2 = new THREE.Mesh(new THREE.CylinderGeometry(0.42 * scale, 0.6 * scale, h2, 10), trunkMat);
+      trunk2.position.set(0.35 * scale, h1 + h2 / 2 - 0.2, 0);
+      trunk2.rotation.z = -0.12;
+      trunk2.castShadow = true;
+      tree.add(trunk2);
+
+      // Gnarled spreading branches
+      const branchAngles = [0, (Math.PI * 2) / 3, (Math.PI * 4) / 3];
+      branchAngles.forEach((ang, bIdx) => {
+        const brLen = (3.5 + (bIdx % 2) * 1.0) * scale;
+        const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * scale, 0.35 * scale, brLen, 8), trunkMat);
+        branch.rotation.z = Math.PI / 2.8;
+        branch.rotation.y = ang;
+        branch.position.set(
+          Math.cos(ang) * (brLen * 0.4),
+          h1 + h2 - 0.2 + (bIdx * 0.4),
+          Math.sin(ang) * (brLen * 0.4)
+        );
+        tree.add(branch);
+      });
+
+      // Cloud Canopy Clusters (Faceted Sakura Blossom Volumes)
+      const canopyCenterY = (h1 + h2 + 0.8) * scale;
+      const clusterOffsets = [
+        { x: 0, y: canopyCenterY + 1.2 * scale, z: 0, r: 3.6 * scale, m: 0 },
+        { x: 2.2 * scale, y: canopyCenterY + 0.2 * scale, z: 1.2 * scale, r: 3.0 * scale, m: 1 },
+        { x: -2.4 * scale, y: canopyCenterY + 0.5 * scale, z: 1.0 * scale, r: 3.2 * scale, m: 2 },
+        { x: 0.8 * scale, y: canopyCenterY - 0.4 * scale, z: -2.6 * scale, r: 2.9 * scale, m: 3 },
+        { x: -1.6 * scale, y: canopyCenterY - 0.2 * scale, z: -1.8 * scale, r: 2.7 * scale, m: 1 },
+        { x: 1.8 * scale, y: canopyCenterY + 1.8 * scale, z: -0.8 * scale, r: 2.4 * scale, m: 0 }
+      ];
+
+      clusterOffsets.forEach(c => {
+        const blossom = new THREE.Mesh(
+          new THREE.DodecahedronGeometry(c.r, 1),
+          blossomMats[c.m % blossomMats.length]
+        );
+        blossom.position.set(c.x, c.y, c.z);
+        blossom.castShadow = true;
+        tree.add(blossom);
+      });
+
+      sakuraGroup.add(tree);
+
+      // Register solid trunk obstacle for smooth collision
+      this.addCylinderStructure(x, z, 0.9 * scale, h1 + h2, tree);
+    };
+
+    // Strategic locations of Sakura across Konoha
+    const sakuraLocs = [
+      // Main Avenue line
+      { x: -9.8, z: -32, s: 1.1 },
+      { x: 9.8, z: -32, s: 1.1 },
+      { x: -9.8, z: 4, s: 1.05 },
+      { x: 9.8, z: 4, s: 1.05 },
+      { x: -9.8, z: 40, s: 1.1 },
+      { x: 9.8, z: 40, s: 1.1 },
+      // Near South Entrance Gate
+      { x: -19, z: 82, s: 1.2 },
+      { x: 19, z: 82, s: 1.2 },
+      // Beside Canal Embankment & Bridges
+      { x: -31, z: 12, s: 1.0 },
+      { x: -31, z: 48, s: 1.15 },
+      { x: -46, z: 12, s: 1.05 },
+      { x: -46, z: -8, s: 1.1 },
+      // Hokage Plaza courtyard
+      { x: -24, z: -38, s: 1.25 },
+      { x: 24, z: -38, s: 1.25 },
+      // Training Ground corner
+      { x: -52, z: -25, s: 1.1 }
+    ];
+
+    sakuraLocs.forEach(loc => createSakura(loc.x, loc.z, loc.s));
+    this.scene.add(sakuraGroup);
+  }
+
+  buildStoneLanternsAndBenches() {
+    const propGroup = new THREE.Group();
+
+    const stoneMat = createToonMaterial(0x78909c, { roughness: 0.8 });
+    const woodMat = createToonMaterial(0x5d4037);
+    const lanternGlowMat = new THREE.MeshBasicMaterial({ color: 0xffd54f });
+
+    // 1. Japanese Kasuga Stone Lanterns (Tōrō)
+    const createStoneLantern = (x, z) => {
+      const lantern = new THREE.Group();
+      lantern.position.set(x, 0, z);
+
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.58, 0.35, 6), stoneMat);
+      base.position.y = 0.175;
+      base.castShadow = true;
+
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 1.3, 6), stoneMat);
+      post.position.y = 0.95;
+      post.castShadow = true;
+
+      const shelf = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.35, 0.22, 6), stoneMat);
+      shelf.position.y = 1.65;
+
+      const firebox = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.45, 6), lanternGlowMat);
+      firebox.position.y = 1.95;
+
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(0.72, 0.45, 6), stoneMat);
+      roof.position.y = 2.35;
+      roof.castShadow = true;
+
+      const jewel = new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 6), stoneMat);
+      jewel.position.y = 2.65;
+
+      lantern.add(base, post, shelf, firebox, roof, jewel);
+      propGroup.add(lantern);
+
+      this.addCylinderStructure(x, z, 0.5, 2.7, lantern);
+    };
+
+    // 2. Traditional Wooden Resting Benches
+    const createBench = (x, z, rotY = 0) => {
+      const bench = new THREE.Group();
+      bench.position.set(x, 0, z);
+      bench.rotation.y = rotY;
+
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.15, 0.8), woodMat);
+      seat.position.y = 0.5;
+      seat.castShadow = true;
+
+      const back = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.45, 0.1), woodMat);
+      back.position.set(0, 0.9, -0.35);
+      back.castShadow = true;
+
+      [-0.95, 0.95].forEach(lx => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.7), woodMat);
+        leg.position.set(lx, 0.25, 0);
+        bench.add(leg);
+      });
+
+      bench.add(seat, back);
+      propGroup.add(bench);
+    };
+
+    // Place Stone Lanterns along street borders and bridge entrances
+    const lanternLocs = [
+      { x: -8.0, z: -15 }, { x: 8.0, z: -15 },
+      { x: -8.0, z: 20 }, { x: 8.0, z: 20 },
+      { x: -8.0, z: 55 }, { x: 8.0, z: 55 },
+      { x: -30.5, z: 25 }, { x: -45.5, z: 25 },
+      { x: -30.5, z: -22 }, { x: -45.5, z: -22 },
+      { x: -30.5, z: 60 }, { x: -45.5, z: 60 },
+      { x: -14, z: -42 }, { x: 14, z: -42 },
+      { x: -8.5, z: 86 }, { x: 8.5, z: 86 }
+    ];
+    lanternLocs.forEach(l => createStoneLantern(l.x, l.z));
+
+    // Place Benches under Sakura trees along the Avenue
+    createBench(-8.2, -6, Math.PI / 2);
+    createBench(8.2, -6, -Math.PI / 2);
+    createBench(-8.2, 32, Math.PI / 2);
+    createBench(8.2, 32, -Math.PI / 2);
+    createBench(0, -38, 0);
+
+    this.scene.add(propGroup);
+  }
+
+  buildBarrelsCratesAndProps() {
+    const propGroup = new THREE.Group();
+
+    const barrelMat = createToonMaterial(0x6d4c41);
+    const hoopMat = createToonMaterial(0x37474f);
+    const crateMat = createToonMaterial(0x8d6e63);
+    const leafSymbolMat = createToonMaterial(0xd32f2f);
+    const bannerMat = createToonMaterial(0xfff8e1);
+    const bannerRedMat = createToonMaterial(0xc62828);
+    const grassMat1 = createToonMaterial(0x4caf50);
+    const grassMat2 = createToonMaterial(0x2e7d32);
+
+    // 1. Detailed Wooden Barrels
+    const createBarrel = (x, y, z, rotX = 0, rotZ = 0) => {
+      const barrel = new THREE.Group();
+      barrel.position.set(x, y + 0.6, z);
+      barrel.rotation.set(rotX, 0, rotZ);
+
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.52, 1.2, 12), barrelMat);
+      body.castShadow = true;
+
+      [-0.42, 0.42].forEach(hy => {
+        const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.53, 0.035, 6, 14), hoopMat);
+        hoop.rotation.x = Math.PI / 2;
+        hoop.position.y = hy;
+        barrel.add(hoop);
+      });
+
+      barrel.add(body);
+      propGroup.add(barrel);
+      return barrel;
+    };
+
+    // 2. Reinforced Ninja Supply Crates
+    const createCrate = (x, y, z, size = 1.0, rotY = 0) => {
+      const crate = new THREE.Group();
+      crate.position.set(x, y + size / 2, z);
+      crate.rotation.y = rotY;
+
+      const box = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), crateMat);
+      box.castShadow = true;
+
+      const plaque = new THREE.Mesh(new THREE.PlaneGeometry(size * 0.45, size * 0.45), leafSymbolMat);
+      plaque.position.set(0, 0, size / 2 + 0.01);
+      crate.add(box, plaque);
+      propGroup.add(crate);
+      return crate;
+    };
+
+    // Stacks near Weapon Merchant
+    createBarrel(-21, 0, 1);
+    createBarrel(-21, 0, 2.4);
+    createBarrel(-21.8, 0, 1.7);
+    createCrate(-21.2, 0, 3.8, 1.1, 0.2);
+    createCrate(-21.2, 1.1, 3.8, 0.9, -0.1);
+
+    // Stacks near Ichiraku Ramen
+    createBarrel(21.5, 0, -1.5);
+    createBarrel(21.5, 0, -2.8);
+    createCrate(21.8, 0, -4.2, 1.0, 0.3);
+
+    // Stacks along South Gate
+    createBarrel(-14, 0, 86);
+    createBarrel(-14.8, 0, 87.2);
+    createCrate(-14, 0, 88.5, 1.2, 0.15);
+    createBarrel(14, 0, 86);
+    createCrate(14.2, 0, 87.5, 1.0, -0.2);
+
+    // 3. Konoha Crest Banners on Street Poles
+    const createBannerPole = (x, z) => {
+      const pole = new THREE.Group();
+      pole.position.set(x, 0, z);
+
+      const woodPole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 6.5, 8), hoopMat);
+      woodPole.position.y = 3.25;
+      woodPole.castShadow = true;
+
+      const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.8, 6), hoopMat);
+      bar.rotation.z = Math.PI / 2;
+      bar.position.set(0.6, 5.8, 0);
+
+      const cloth = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 3.2), bannerMat);
+      cloth.position.set(0.6, 4.1, 0);
+      const emblem = new THREE.Mesh(new THREE.CircleGeometry(0.35, 12), bannerRedMat);
+      emblem.position.set(0.6, 4.5, 0.01);
+
+      pole.add(woodPole, bar, cloth, emblem);
+      propGroup.add(pole);
+    };
+
+    createBannerPole(-9.2, 70);
+    createBannerPole(9.2, 70);
+    createBannerPole(-9.2, -40);
+    createBannerPole(9.2, -40);
+
+    // 4. Stylized 3D Grass Tufts across village
+    const grassGeo = new THREE.ConeGeometry(0.35, 0.7, 4);
+    grassGeo.rotateX(Math.PI);
+    grassGeo.translate(0, 0.35, 0);
+
+    for (let g = 0; g < 45; g++) {
+      const gx = (Math.random() - 0.5) * 160;
+      const gz = (Math.random() - 0.5) * 160;
+      if (Math.abs(gx) < 8.5) continue;
+      if (gx > -44 && gx < -32) continue;
+
+      const tuft = new THREE.Group();
+      tuft.position.set(gx, 0, gz);
+      for (let b = 0; b < 3; b++) {
+        const blade = new THREE.Mesh(grassGeo, (b % 2 === 0) ? grassMat1 : grassMat2);
+        blade.position.set((Math.random() - 0.5) * 0.4, 0, (Math.random() - 0.5) * 0.4);
+        blade.rotation.y = Math.random() * Math.PI;
+        blade.rotation.z = (Math.random() - 0.5) * 0.4;
+        tuft.add(blade);
+      }
+      propGroup.add(tuft);
+    }
+
+    this.scene.add(propGroup);
   }
 
   buildOuterDefensiveWalls() {
@@ -372,50 +778,645 @@ export class KonohaCity {
     this.addBuildingStructure(16 - w / 2, 16 + w / 2, 22 - d / 2, 22 + d / 2, h, shopGroup, false, 0, 2.5);
   }
 
+  buildWeaponShopAndMerchant() {
+    const shopGroup = new THREE.Group();
+    shopGroup.position.set(-16, 0, 22);
+
+    const woodMat = createToonMaterial(0x5d4037);
+    const darkWoodMat = createToonMaterial(0x3e2723);
+    const norenMat = createToonMaterial(0x1a237e); // Royal navy blue noren
+    const goldMat = createToonMaterial(0xffb300);
+    const tileMat = createToonMaterial(0x263238);
+    const steelMat = createToonMaterial(0xf0f4f8, { roughness: 0.15 });
+    const ironMat = createToonMaterial(0x37474f, { roughness: 0.5 });
+    const redMat = createToonMaterial(0xd50000);
+    const skinMat = createToonMaterial(0xffcca0, { roughness: 0.45 });
+    const brassMat = createToonMaterial(0xffb74d, { roughness: 0.3 });
+    const lensMat = createToonMaterial(0x00e5ff, { roughness: 0.1 });
+
+    const w = 11;
+    const d = 8.5;
+    const h = 5.5;
+
+    // 1. Building base & roof
+    const base = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), woodMat);
+    base.position.y = h / 2;
+
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(7.5, 2.6, 4), tileMat);
+    roof.rotation.y = Math.PI / 4;
+    roof.position.y = h + 1.3;
+    roof.scale.set(1.45, 1.0, 1.25);
+
+    // Front Overhang Eaves & Lanterns
+    const eave = new THREE.Mesh(new THREE.BoxGeometry(w + 1.0, 0.3, 2.4), darkWoodMat);
+    eave.position.set(0, h - 0.2, d / 2 + 0.85);
+    shopGroup.add(eave);
+
+    for (let lx of [-4.2, 4.2]) {
+      const lantern = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.75, 12), createToonMaterial(0xff7043));
+      lantern.position.set(lx, h - 0.85, d / 2 + 0.85);
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.09, 12), darkWoodMat);
+      cap.position.set(lx, h - 0.45, d / 2 + 0.85);
+      shopGroup.add(lantern, cap);
+    }
+
+    // 2. Wide Trade Counter
+    const counter = new THREE.Mesh(new THREE.BoxGeometry(7.6, 1.2, 1.4), darkWoodMat);
+    counter.position.set(0, 0.6, d / 2 + 0.7);
+
+    // 3. Katana Stand (Katanakake) displaying 3 Mastercraft Combat Katanas
+    const standGroup = new THREE.Group();
+    standGroup.position.set(-2.0, 1.25, d / 2 + 0.7);
+
+    const standBase = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.09, 0.45), darkWoodMat);
+    const standPillar1 = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.65, 0.22), darkWoodMat);
+    standPillar1.position.set(-0.65, 0.32, 0);
+    const standPillar2 = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.65, 0.22), darkWoodMat);
+    standPillar2.position.set(0.65, 0.32, 0);
+    standGroup.add(standBase, standPillar1, standPillar2);
+
+    const scabbardColors = [0x111111, 0xb71c1c, 0xf5f5f5];
+    for (let k = 0; k < 3; k++) {
+      const kGroup = new THREE.Group();
+      kGroup.position.set(0, 0.18 + k * 0.18, 0);
+
+      // Scabbard
+      const scabbard = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 1.45, 8), createToonMaterial(scabbardColors[k]));
+      scabbard.rotation.z = Math.PI / 2;
+
+      // Golden Tsuba (Crossguard)
+      const tsuba = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.095, 0.022, 10), goldMat);
+      tsuba.position.set(0.74, 0, 0);
+      tsuba.rotation.z = Math.PI / 2;
+
+      // Handle (Tsuka) with wrapping
+      const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.034, 0.40, 8), k === 1 ? goldMat : woodMat);
+      handle.position.set(0.95, 0, 0);
+      handle.rotation.z = Math.PI / 2;
+
+      kGroup.add(scabbard, tsuba, handle);
+      standGroup.add(kGroup);
+    }
+    shopGroup.add(standGroup);
+
+    // 4. Blacksmith's Heavy Cast-Iron Anvil with Glowing Red-Hot Iron
+    const anvilGroup = new THREE.Group();
+    anvilGroup.position.set(2.4, 0, d / 2 + 1.8);
+
+    const anvilLog = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.60, 0.75, 12), darkWoodMat);
+    anvilLog.position.y = 0.375;
+
+    const anvilBase = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.2, 0.55), ironMat);
+    anvilBase.position.y = 0.85;
+    const anvilWaist = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.3, 0.35), ironMat);
+    anvilWaist.position.y = 1.05;
+    const anvilTop = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.24, 0.48), steelMat);
+    anvilTop.position.y = 1.25;
+
+    // Conical Anvil Horn
+    const horn = new THREE.Mesh(new THREE.ConeGeometry(0.20, 0.45, 10), steelMat);
+    horn.rotation.z = -Math.PI / 2;
+    horn.position.set(0.68, 1.25, 0);
+
+    // Glowing Red-Hot Steel Blade Blank
+    const hotSteelMat = new THREE.MeshBasicMaterial({ color: 0xff3d00 });
+    const hotBlade = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.04, 0.12), hotSteelMat);
+    hotBlade.position.set(-0.1, 1.39, 0);
+
+    // Subtle forge glow aura
+    const glowMat = new THREE.MeshBasicMaterial({ color: 0xff6d00, transparent: true, opacity: 0.35 });
+    const forgeGlow = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), glowMat);
+    forgeGlow.position.set(-0.1, 1.45, 0);
+
+    anvilGroup.add(anvilLog, anvilBase, anvilWaist, anvilTop, horn, hotBlade, forgeGlow);
+    shopGroup.add(anvilGroup);
+
+    // Target Board with Kunai & Shuriken pinned
+    const targetBoard = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.09, 16), woodMat);
+    targetBoard.position.set(2.4, 1.7, d / 2 + 0.3);
+    targetBoard.rotation.x = Math.PI / 2;
+
+    const bullseye = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.34, 16), redMat);
+    bullseye.position.set(2.4, 1.7, d / 2 + 0.35);
+    shopGroup.add(targetBoard, bullseye);
+
+    // Embedded Kunai in target board
+    for (let sh of [-0.18, 0.15]) {
+      const kunaiBlade = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.22, 4), steelMat);
+      kunaiBlade.rotation.x = -Math.PI / 2;
+      kunaiBlade.position.set(2.4 + sh, 1.7 + sh * 0.5, d / 2 + 0.42);
+      shopGroup.add(kunaiBlade);
+    }
+
+    // Ninjutsu Scrolls on counter
+    for (let sc = 0; sc < 3; sc++) {
+      const scroll = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.7, 10), createToonMaterial(0xffecb3));
+      scroll.rotation.x = Math.PI / 2;
+      scroll.position.set(0.6 + sc * 0.35, 1.25, d / 2 + 0.7);
+      shopGroup.add(scroll);
+    }
+
+    // Shop Noren & Golden Crest Banner
+    const noren = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 1.35), norenMat);
+    noren.position.set(0, h - 0.85, d / 2 + 0.05);
+
+    // Gold "WEAPONS / 武器" text plate
+    const signPlate = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 0.6), darkWoodMat);
+    signPlate.position.set(0, h - 0.85, d / 2 + 0.06);
+
+    const crest = new THREE.Mesh(new THREE.CircleGeometry(0.38, 16), goldMat);
+    crest.position.set(0, h - 0.85, d / 2 + 0.07);
+
+    shopGroup.add(base, roof, counter, noren, signPlate, crest);
+
+    // 5. HIGH-DETAIL 3D MASTER WEAPONSMITH NPC
+    this.merchantGroup = new THREE.Group();
+    this.merchantGroup.position.set(0, 0, d / 2 + 0.2); // Comfortably behind counter
+
+    // Torso
+    this.merchantTorso = new THREE.Group();
+    this.merchantTorso.position.y = 1.1;
+
+    // Indigo craftsman tunic (Samue)
+    const mBody = new THREE.Mesh(new THREE.CylinderGeometry(0.40, 0.34, 0.72, 18), createToonMaterial(0x0d47a1));
+    // Heavy Stitched Blacksmith Apron
+    const mApron = new THREE.Mesh(new THREE.CylinderGeometry(0.41, 0.36, 0.55, 18, 1, false, -1.0, 2.0), createToonMaterial(0x3e2723));
+    mApron.position.y = -0.06;
+
+    // Brass corner studs on apron
+    for (let ax of [-0.22, 0.22]) {
+      const stud = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6), brassMat);
+      stud.position.set(ax, 0.16, 0.39);
+      mApron.add(stud);
+    }
+
+    // Sturdy leather tool belt
+    const mBelt = new THREE.Mesh(new THREE.CylinderGeometry(0.415, 0.415, 0.11, 18), createToonMaterial(0x1a1a1a));
+    mBelt.position.y = -0.16;
+    const beltBuckle = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.12, 0.04), brassMat);
+    beltBuckle.position.set(0, -0.16, 0.42);
+
+    // Smithing Tongs tucked into belt on left hip
+    const tongs = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.42, 0.06), ironMat);
+    tongs.position.set(-0.44, -0.18, 0.08);
+    tongs.rotation.z = 0.25;
+
+    this.merchantTorso.add(mBody, mApron, mBelt, beltBuckle, tongs);
+
+    // Head
+    this.merchantHead = new THREE.Group();
+    this.merchantHead.position.y = 0.68;
+    const mFace = new THREE.Mesh(new THREE.SphereGeometry(0.30, 18, 16), skinMat);
+    mFace.scale.set(1.0, 1.15, 1.05);
+
+    // Crimson Bandana
+    const mBandana = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.14, 18), createToonMaterial(0xc62828));
+    mBandana.position.y = 0.16;
+
+    // Brass Smithing Goggles pushed up on forehead
+    const goggleStrap = new THREE.Mesh(new THREE.CylinderGeometry(0.325, 0.325, 0.06, 18), createToonMaterial(0x1a1a1a));
+    goggleStrap.position.y = 0.18;
+    const goggleR = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.06, 10), brassMat);
+    goggleR.rotation.x = Math.PI / 2;
+    goggleR.position.set(0.12, 0.18, 0.30);
+    const goggleLensR = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.065, 10), lensMat);
+    goggleLensR.rotation.x = Math.PI / 2;
+    goggleLensR.position.set(0.12, 0.18, 0.305);
+
+    const goggleL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.06, 10), brassMat);
+    goggleL.rotation.x = Math.PI / 2;
+    goggleL.position.set(-0.12, 0.18, 0.30);
+    const goggleLensL = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.065, 10), lensMat);
+    goggleLensL.rotation.x = Math.PI / 2;
+    goggleLensL.position.set(-0.12, 0.18, 0.305);
+
+    // Determined anime craftsman eyes & thick master mustache
+    const mEyeMat = createToonMaterial(0x1a1a1a);
+    const brow1 = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.03, 0.02), mEyeMat);
+    brow1.position.set(-0.11, 0.12, 0.31);
+    brow1.rotation.z = -0.15;
+    const brow2 = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.03, 0.02), mEyeMat);
+    brow2.position.set(0.11, 0.12, 0.31);
+    brow2.rotation.z = 0.15;
+
+    const eye1 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.03, 0.02), mEyeMat);
+    eye1.position.set(-0.11, 0.06, 0.31);
+    const eye2 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.03, 0.02), mEyeMat);
+    eye2.position.set(0.11, 0.06, 0.31);
+
+    // Thick master craftsman mustache & goatee
+    const mStache = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.08, 0.06), createToonMaterial(0x212121));
+    mStache.position.set(0, -0.06, 0.32);
+    const mBeard = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.20, 8), createToonMaterial(0x212121));
+    mBeard.position.set(0, -0.24, 0.28);
+    mBeard.rotation.x = 0.35;
+
+    this.merchantHead.add(mFace, mBandana, goggleStrap, goggleR, goggleLensR, goggleL, goggleLensL, brow1, brow2, eye1, eye2, mStache, mBeard);
+    this.merchantTorso.add(this.merchantHead);
+
+    // Left Arm (resting relaxed on counter with white wrist wrap)
+    const mArmGeo = new THREE.CylinderGeometry(0.12, 0.10, 0.65, 12);
+    this.merchantLArm = new THREE.Mesh(mArmGeo, createToonMaterial(0x0d47a1));
+    this.merchantLArm.position.set(-0.50, 0.24, 0);
+    this.merchantLArm.rotation.set(0.4, 0, 0.22);
+    const lWristWrap = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.105, 0.16, 10), createToonMaterial(0xf5f5f5));
+    lWristWrap.position.y = -0.22;
+    this.merchantLArm.add(lWristWrap);
+
+    // Right Arm: Welcoming Wave holding a Blacksmith Hammer!
+    this.merchantRArm = new THREE.Group();
+    this.merchantRArm.position.set(0.50, 0.24, 0);
+    const rArmMesh = new THREE.Mesh(mArmGeo, createToonMaterial(0x0d47a1));
+    rArmMesh.position.y = -0.32;
+    const rWristWrap = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.105, 0.16, 10), createToonMaterial(0xf5f5f5));
+    rWristWrap.position.y = -0.22;
+    rArmMesh.add(rWristWrap);
+
+    // Smithing Hammer in hand
+    const hammerHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.50, 8), darkWoodMat);
+    hammerHandle.position.set(0, -0.38, 0.12);
+    hammerHandle.rotation.x = 0.5;
+    const hammerHead = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.10, 0.18), steelMat);
+    hammerHead.position.set(0, 0.22, 0);
+    hammerHandle.add(hammerHead);
+
+    this.merchantRArm.add(rArmMesh, hammerHandle);
+    this.merchantRArm.rotation.set(0.2, 0, -0.2);
+
+    this.merchantTorso.add(this.merchantLArm, this.merchantRArm);
+
+    // Legs
+    const mLegGeo = new THREE.CylinderGeometry(0.13, 0.11, 0.72, 12);
+    const mLegL = new THREE.Mesh(mLegGeo, darkWoodMat);
+    mLegL.position.set(-0.18, -0.65, 0);
+    const mLegR = new THREE.Mesh(mLegGeo, darkWoodMat);
+    mLegR.position.set(0.18, -0.65, 0);
+    this.merchantTorso.add(mLegL, mLegR);
+
+    this.merchantGroup.add(this.merchantTorso);
+    shopGroup.add(this.merchantGroup);
+
+    this.scene.add(shopGroup);
+
+    // Save world position of merchant for player proximity interaction check
+    this.merchantPos = new THREE.Vector3(-16, 0, 22 + d / 2 + 1.2);
+
+    // Register building structure with sloped roof so it is solid and parkour-friendly!
+    this.addBuildingStructure(-16 - w / 2, -16 + w / 2, 22 - d / 2, 22 + d / 2, h, shopGroup, false, 0, 2.6);
+  }
+
+  buildMissionDeskAndKakashi() {
+    const postGroup = new THREE.Group();
+    postGroup.position.set(7, 0, -22);
+
+    const woodMat = createToonMaterial(0x5d4037);
+    const darkWoodMat = createToonMaterial(0x3e2723);
+    const redMat = createToonMaterial(0xb71c1c);
+    const goldMat = createToonMaterial(0xffb300);
+    const whiteMat = createToonMaterial(0xffffff);
+    const tileMat = createToonMaterial(0x263238);
+    const skinMat = createToonMaterial(0xffcca0, { roughness: 0.45 });
+    const silverMat = createToonMaterial(0xe8ecef, { roughness: 0.3 }); // Crisp silver-white hair
+    const navyMat = createToonMaterial(0x101a3c, { roughness: 0.5 }); // Dark navy shinobi uniform
+    const flakMat = createToonMaterial(0x2e7d32, { roughness: 0.6 }); // Jonin green flak jacket
+    const metalMat = createToonMaterial(0xf0f4f8, { roughness: 0.15 }); // Polished steel
+    const orangeMat = createToonMaterial(0xff6d00); // Icha Icha orange
+    const brassMat = createToonMaterial(0xffb300, { roughness: 0.3 });
+
+    // 1. Mission Pavilion Canopy Roof
+    const pillarMat = createToonMaterial(0x8d4f13);
+    for (let px of [-2.4, 2.4]) {
+      for (let pz of [-1.5, 1.5]) {
+        const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 4.2, 10), pillarMat);
+        pillar.position.set(px, 2.1, pz);
+        postGroup.add(pillar);
+      }
+    }
+
+    const canopy = new THREE.Mesh(new THREE.ConeGeometry(3.8, 1.5, 4), tileMat);
+    canopy.rotation.y = Math.PI / 4;
+    canopy.position.set(0, 4.45, 0);
+    canopy.scale.set(1.4, 1.0, 1.1);
+
+    // Hanging Red Lanterns on corners
+    for (let lx of [-2.2, 2.2]) {
+      const lantern = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.55, 10), createToonMaterial(0xff5722));
+      lantern.position.set(lx, 3.4, 1.4);
+      postGroup.add(lantern);
+    }
+
+    // 2. Mission Desk
+    const desk = new THREE.Mesh(new THREE.BoxGeometry(4.2, 1.15, 1.3), darkWoodMat);
+    desk.position.set(0, 0.58, 0.6);
+
+    // Front Leaf Mission Crest Banner
+    const banner = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 0.9), whiteMat);
+    banner.position.set(0, 0.58, 1.26);
+    const crest = new THREE.Mesh(new THREE.CircleGeometry(0.34, 16), redMat);
+    crest.position.set(0, 0.58, 1.27);
+
+    // Mission Scrolls stacked on desk
+    const colors = [0x4caf50, 0x2196f3, 0xff9800, 0xe91e63, 0x9c27b0];
+    for (let s = 0; s < 5; s++) {
+      const scroll = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.6, 10), createToonMaterial(colors[s]));
+      scroll.rotation.z = Math.PI / 2;
+      scroll.position.set(-1.2 + s * 0.22, 1.22, 0.5);
+      postGroup.add(scroll);
+    }
+
+    // Ink Pot and Feather Quill
+    const inkPot = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.14, 10), createToonMaterial(0x111111));
+    inkPot.position.set(1.4, 1.22, 0.5);
+    const quill = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.35, 6), whiteMat);
+    quill.position.set(1.42, 1.35, 0.5);
+    quill.rotation.z = -0.3;
+
+    postGroup.add(canopy, desk, banner, crest, inkPot, quill);
+
+    // 3. ULTRA-DETAILED 3D KAKASHI HATAKE MODEL
+    this.kakashiGroup = new THREE.Group();
+    this.kakashiGroup.position.set(0, 0, -0.2); // Positioned behind desk
+
+    // Torso
+    this.kakashiTorso = new THREE.Group();
+    this.kakashiTorso.position.y = 1.15;
+
+    // Dark navy inner shinobi shirt
+    const innerShirt = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.32, 0.72, 18), navyMat);
+    this.kakashiTorso.add(innerShirt);
+
+    // Konoha Jonin Flak Jacket
+    const vestGeo = new THREE.CylinderGeometry(0.40, 0.37, 0.54, 18);
+    const vest = new THREE.Mesh(vestGeo, flakMat);
+    vest.position.y = 0.08;
+
+    // Rigid Protective High Neck Collar
+    const collarGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.26, 16, 1, false, -2.0, 4.0);
+    const collar = new THREE.Mesh(collarGeo, flakMat);
+    collar.position.set(0, 0.38, -0.04);
+    vest.add(collar);
+
+    // Shoulder Epaulets
+    for (let ex of [-0.42, 0.42]) {
+      const epaulet = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.22), flakMat);
+      epaulet.position.set(ex, 0.28, 0);
+      vest.add(epaulet);
+    }
+
+    // 4 Distinct 3D Chest Utility Pouches with Brass Buttons
+    const pouchPositions = [
+      { x: -0.22, y: 0.12 },
+      { x: 0.22, y: 0.12 },
+      { x: -0.22, y: -0.08 },
+      { x: 0.22, y: -0.08 }
+    ];
+    pouchPositions.forEach(pp => {
+      const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.14, 0.10), flakMat);
+      pouch.position.set(pp.x, pp.y, 0.38);
+      const snap = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 6), brassMat);
+      snap.position.set(0, 0.04, 0.055);
+      pouch.add(snap);
+      vest.add(pouch);
+    });
+
+    // Red Spiral Uzumaki Clan Crest on back
+    const backSwirl = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.03, 8, 20), redMat);
+    backSwirl.position.set(0, 0.08, -0.39);
+    vest.add(backSwirl);
+
+    this.kakashiTorso.add(vest);
+
+    // Head
+    this.kakashiHead = new THREE.Group();
+    this.kakashiHead.position.y = 0.70;
+
+    const headGeo = new THREE.SphereGeometry(0.28, 18, 16);
+    const face = new THREE.Mesh(headGeo, skinMat);
+    face.scale.set(0.98, 1.12, 1.02);
+
+    // Blue Ninja Face Mask (anatomically covers mouth, jaw, and neck)
+    const maskGeo = new THREE.CylinderGeometry(0.29, 0.26, 0.34, 18, 1, false, -0.4, 3.9);
+    const mask = new THREE.Mesh(maskGeo, navyMat);
+    mask.position.set(0, -0.08, 0.02);
+
+    // Multi-Layered 16-Spike Silver Hair (Swept leftwards in true Kakashi style)
+    this.kakashiHair = new THREE.Group();
+    const hairSpikesData = [
+      { x: 0.12, y: 0.25, z: 0.10, rx: -0.3, ry: 0.2, rz: 0.45, w: 0.13, h: 0.44 },
+      { x: -0.06, y: 0.32, z: 0.12, rx: -0.2, ry: -0.1, rz: 0.55, w: 0.14, h: 0.48 },
+      { x: -0.20, y: 0.28, z: 0.08, rx: -0.1, ry: -0.3, rz: 0.65, w: 0.13, h: 0.42 },
+      { x: 0.18, y: 0.22, z: -0.08, rx: 0.2, ry: 0.3, rz: 0.40, w: 0.13, h: 0.45 },
+      { x: 0.04, y: 0.38, z: -0.05, rx: 0.0, ry: 0.1, rz: 0.50, w: 0.15, h: 0.52 },
+      { x: -0.15, y: 0.35, z: -0.06, rx: 0.1, ry: -0.2, rz: 0.60, w: 0.14, h: 0.48 },
+      { x: -0.24, y: 0.25, z: -0.10, rx: 0.2, ry: -0.4, rz: 0.70, w: 0.12, h: 0.40 },
+      { x: 0.10, y: 0.20, z: -0.18, rx: 0.4, ry: 0.2, rz: 0.35, w: 0.12, h: 0.42 },
+      { x: -0.08, y: 0.26, z: -0.18, rx: 0.4, ry: -0.2, rz: 0.55, w: 0.13, h: 0.44 },
+      { x: -0.02, y: 0.44, z: 0.02, rx: -0.1, ry: 0.0, rz: 0.48, w: 0.16, h: 0.54 },
+      { x: 0.20, y: 0.14, z: 0.02, rx: 0.0, ry: 0.4, rz: 0.30, w: 0.11, h: 0.38 },
+      { x: -0.22, y: 0.16, z: 0.00, rx: 0.0, ry: -0.5, rz: 0.75, w: 0.11, h: 0.38 }
+    ];
+    hairSpikesData.forEach(hd => {
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(hd.w, hd.h, 6), silverMat);
+      spike.position.set(hd.x, hd.y, hd.z);
+      spike.rotation.set(hd.rx, hd.ry, hd.rz);
+      this.kakashiHair.add(spike);
+    });
+
+    // Angled Leaf Village Forehead Protector (Tilted sharply over left eye)
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.30, 0.12, 18), navyMat);
+    band.position.set(0, 0.14, 0);
+    band.rotation.z = -0.28;
+
+    // Curved Metallic Plate with Rivets
+    const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.31, 0.31, 0.09, 14, 1, false, -0.65, 1.3), metalMat);
+    plate.position.set(-0.04, 0.14, 0.04);
+    plate.rotation.z = -0.28;
+
+    // Engraved Leaf Insignia Symbol (Spiral + Leaf Tip)
+    const leafSwirl = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.012, 6, 12), createToonMaterial(0x1a237e));
+    leafSwirl.position.set(-0.06, 0.15, 0.33);
+    leafSwirl.rotation.z = -0.28;
+    const leafTriangle = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.06, 3), createToonMaterial(0x1a237e));
+    leafTriangle.position.set(-0.02, 0.17, 0.33);
+    leafTriangle.rotation.z = -0.7;
+
+    // Right Eye: Sharp anime eye with pupil
+    const eyeMat = createToonMaterial(0x111111);
+    const brow = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.02, 0.02), eyeMat);
+    brow.position.set(0.12, 0.10, 0.28);
+    brow.rotation.z = -0.15;
+    const eye = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.025, 0.02), eyeMat);
+    eye.position.set(0.12, 0.05, 0.28);
+
+    // Left Eye Sharingan hint: faint mysterious crimson glint under tilted headband
+    const sharinganHint = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 6), new THREE.MeshBasicMaterial({ color: 0xd50000 }));
+    sharinganHint.position.set(-0.08, 0.02, 0.29);
+
+    this.kakashiHead.add(face, mask, this.kakashiHair, band, plate, leafSwirl, leafTriangle, brow, eye, sharinganHint);
+    this.kakashiTorso.add(this.kakashiHead);
+
+    // Left Arm (relaxed on desk with white wrist wraps and fingerless glove)
+    const armGeo = new THREE.CylinderGeometry(0.09, 0.08, 0.62, 10);
+    this.lArm = new THREE.Mesh(armGeo, navyMat);
+    this.lArm.position.set(-0.46, 0.22, 0.15);
+    this.lArm.rotation.set(0.65, 0, 0.25);
+    const lWrap = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.18, 10), whiteMat);
+    lWrap.position.y = -0.22;
+    this.lArm.add(lWrap);
+    this.kakashiTorso.add(this.lArm);
+
+    // Right Arm: Reading Signature Book (Icha Icha Tactics)
+    this.kakashiRArm = new THREE.Group();
+    this.kakashiRArm.position.set(0.46, 0.22, 0.05);
+    const rArmMesh = new THREE.Mesh(armGeo, navyMat);
+    rArmMesh.position.y = -0.26;
+    rArmMesh.rotation.x = 0.85;
+    rArmMesh.rotation.z = -0.2;
+    const rWrap = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.18, 10), whiteMat);
+    rWrap.position.y = -0.22;
+    rArmMesh.add(rWrap);
+
+    // Signature Book (Icha Icha Tactics) with Green Ribbon Bookmark
+    const book = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.30, 0.08), orangeMat);
+    book.position.set(0, -0.42, 0.28);
+    book.rotation.set(0.4, 0.2, 0);
+
+    const bookTitle = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.14), whiteMat);
+    bookTitle.position.set(0, 0.04, 0.042);
+    const bookmark = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.12, 0.02), createToonMaterial(0x00e676));
+    bookmark.position.set(0.04, 0.18, 0);
+    book.add(bookTitle, bookmark);
+
+    this.kakashiRArm.add(rArmMesh, book);
+    this.kakashiTorso.add(this.kakashiRArm);
+
+    // Legs
+    const legGeo = new THREE.CylinderGeometry(0.11, 0.09, 0.72, 10);
+    const lLeg = new THREE.Mesh(legGeo, navyMat);
+    lLeg.position.set(-0.16, -0.65, 0);
+    const rLeg = new THREE.Mesh(legGeo, navyMat);
+    rLeg.position.set(0.16, -0.65, 0);
+
+    // White bandage & kunai holster on right leg
+    const bandage = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.115, 0.20, 10), whiteMat);
+    bandage.position.set(0.16, -0.55, 0);
+    const holster = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.16, 0.08), createToonMaterial(0x1a1a1a));
+    holster.position.set(0.25, -0.55, 0);
+
+    // Miniature kunai handles sticking out of holster
+    for (let kh of [-0.03, 0.03]) {
+      const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.12, 6), whiteMat);
+      handle.position.set(0.25, -0.45, kh);
+      this.kakashiTorso.add(handle);
+    }
+
+    this.kakashiTorso.add(lLeg, rLeg, bandage, holster);
+    this.kakashiGroup.add(this.kakashiTorso);
+
+    // 4. FLOATING 3D GOLDEN QUEST EXCLAMATION MARK (!)
+    this.kakashiQuestIcon = new THREE.Group();
+    this.kakashiQuestIcon.position.set(0, 2.75, 0);
+
+    const goldGlowMat = new THREE.MeshBasicMaterial({ color: 0xffd600 });
+    const markBar = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.52, 8), goldGlowMat);
+    markBar.rotation.x = Math.PI;
+    markBar.position.y = 0.28;
+
+    const markDot = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 10), goldGlowMat);
+    markDot.position.y = -0.12;
+
+    const markHalo = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.03, 8, 20), new THREE.MeshBasicMaterial({ color: 0xffab00, transparent: true, opacity: 0.8 }));
+    markHalo.rotation.x = Math.PI / 2;
+    markHalo.position.y = 0.18;
+
+    this.kakashiQuestIcon.add(markBar, markDot, markHalo);
+    this.kakashiGroup.add(this.kakashiQuestIcon);
+
+    postGroup.add(this.kakashiGroup);
+    this.scene.add(postGroup);
+
+    // Store position for player proximity check
+    this.questNpcPos = new THREE.Vector3(7, 0, -20.5);
+
+    // Solid desk structure so player can't walk through it
+    this.addBuildingStructure(4.8, 9.2, -23.0, -20.5, 1.4, postGroup, false);
+  }
+
   buildDenseDistricts() {
-    // 36 Tall, Atmospheric Multi-Story Buildings (Heights: 8m, 12m, 16m, 20m!)
-    const wallTones = [0xf5f5f5, 0xe0e0e0, 0xd7ccc8, 0xcfd8dc, 0xbcaaa4, 0xfff8e1];
-    const roofTones = [0x263238, 0x1b5e20, 0x4e342e, 0x37474f, 0x2e7d32, 0x004d40];
+    // 56 Authentic, Atmospheric Japanese Shinobi Buildings across East & West Districts
+    const wallTones = [0xf5f5f5, 0xe8e8e8, 0xd7ccc8, 0xcfd8dc, 0xbcaaa4, 0xfff8e1, 0xefebe9];
+    const roofTones = [0x263238, 0x1b5e20, 0x4e342e, 0x37474f, 0x2e7d32, 0x1a237e, 0x3e2723];
 
     const plots = [
-      // East District - Commercial & High-Rise Apartments
-      { x: 20, z: -8, w: 12, d: 14, h: 12 },
-      { x: 38, z: -8, w: 14, d: 16, h: 18 },
-      { x: 58, z: -8, w: 16, d: 14, h: 14 },
-      { x: 74, z: -8, w: 12, d: 14, h: 10 },
+      // -------------------------------------------------------------
+      // EAST DISTRICT: Uchiha Clan Quarter, Tea Houses, Dango & High-Rises
+      // -------------------------------------------------------------
+      // Row 1 (z = -10): Commercial & Clan Street
+      { x: 20, z: -10, w: 12, d: 12, h: 9, type: 'dango' },
+      { x: 38, z: -10, w: 14, d: 14, h: 12, type: 'teahouse' },
+      { x: 60, z: -10, w: 18, d: 16, h: 16, type: 'uchiha' },
+      { x: 84, z: -10, w: 14, d: 14, h: 14, type: 'residential' },
+      { x: 106, z: -10, w: 14, d: 14, h: 18, type: 'tower' },
 
-      { x: 34, z: 18, w: 14, d: 12, h: 14 },
-      { x: 54, z: 18, w: 16, d: 14, h: 19 }, // 19m High-Rise!
-      { x: 72, z: 18, w: 12, d: 12, h: 11 },
+      // Row 2 (z = 18): High-Rise Apartments & Clan Lane
+      { x: 38, z: 18, w: 14, d: 14, h: 15, type: 'residential' },
+      { x: 60, z: 18, w: 16, d: 16, h: 20, type: 'highrise' }, // 20m High-Rise!
+      { x: 84, z: 18, w: 14, d: 14, h: 14, type: 'residential' },
+      { x: 106, z: 18, w: 14, d: 14, h: 12, type: 'residential' },
 
-      { x: 20, z: 42, w: 12, d: 14, h: 13 },
-      { x: 38, z: 42, w: 14, d: 14, h: 17 },
-      { x: 58, z: 42, w: 16, d: 16, h: 15 },
-      { x: 74, z: 42, w: 12, d: 12, h: 9 },
+      // Row 3 (z = 44): Residential & Commercial Alley
+      { x: 20, z: 44, w: 12, d: 14, h: 13, type: 'residential' },
+      { x: 38, z: 44, w: 14, d: 14, h: 17, type: 'highrise' },
+      { x: 60, z: 44, w: 16, d: 16, h: 15, type: 'uchiha' },
+      { x: 84, z: 44, w: 14, d: 14, h: 13, type: 'residential' },
+      { x: 106, z: 44, w: 14, d: 14, h: 11, type: 'residential' },
 
-      { x: 22, z: 66, w: 12, d: 12, h: 10 },
-      { x: 42, z: 66, w: 15, d: 14, h: 16 },
-      { x: 62, z: 66, w: 14, d: 14, h: 12 },
+      // Row 4 (z = 70): South-East Residential Quarter
+      { x: 22, z: 70, w: 12, d: 12, h: 11, type: 'residential' },
+      { x: 42, z: 70, w: 15, d: 14, h: 16, type: 'highrise' },
+      { x: 64, z: 70, w: 16, d: 14, h: 13, type: 'residential' },
+      { x: 86, z: 70, w: 14, d: 12, h: 10, type: 'residential' },
+      { x: 108, z: 70, w: 14, d: 12, h: 9, type: 'residential' },
 
-      // West District - Clan Compounds & Ninja Academy
-      { x: -20, z: -8, w: 12, d: 14, h: 13 },
-      { x: -20, z: 18, w: 12, d: 14, h: 15 },
-      { x: -20, z: 42, w: 12, d: 14, h: 12 },
-      { x: -20, z: 66, w: 12, d: 14, h: 11 },
+      // -------------------------------------------------------------
+      // WEST DISTRICT: Ninja Academy, Hospital, Clan Estates & Dojos
+      // -------------------------------------------------------------
+      // Row 1 (z = -10): Academy Front & Archives
+      { x: -20, z: -10, w: 12, d: 14, h: 13, type: 'residential' },
+      { x: -64, z: -10, w: 22, d: 20, h: 22, type: 'academy' }, // Grand Academy Tower!
+      { x: -94, z: -10, w: 18, d: 16, h: 14, type: 'library' },
+      { x: -114, z: -10, w: 14, d: 14, h: 16, type: 'tower' },
 
-      // Far West Ninja Academy Complex
-      { x: -58, z: -8, w: 20, d: 18, h: 20 }, // Grand Academy Tower
-      { x: -58, z: 18, w: 16, d: 14, h: 14 },
-      { x: -58, z: 42, w: 16, d: 16, h: 16 },
-      { x: -58, z: 66, w: 15, d: 14, h: 12 },
-      { x: -76, z: 10, w: 12, d: 16, h: 10 },
-      { x: -76, z: 38, w: 12, d: 16, h: 13 },
+      // Row 2 (z = 18): Academy Wing & Central Hospital
+      { x: -44, z: 18, w: 14, d: 14, h: 14, type: 'residential' },
+      { x: -68, z: 18, w: 18, d: 16, h: 15, type: 'residential' },
+      { x: -94, z: 18, w: 18, d: 16, h: 17, type: 'hospital' }, // Konoha Central Hospital
+      { x: -114, z: 18, w: 14, d: 14, h: 11, type: 'residential' },
 
-      // North District near Hokage Mountain
-      { x: -38, z: -50, w: 16, d: 14, h: 16 },
-      { x: -62, z: -50, w: 16, d: 14, h: 12 },
-      { x: 38, z: -50, w: 16, d: 14, h: 17 },
-      { x: 62, z: -50, w: 16, d: 14, h: 13 }
+      // Row 3 (z = 44): Yamanaka Flower Shop & Clan Compounds
+      { x: -20, z: 44, w: 12, d: 14, h: 11, type: 'flowershop' },
+      { x: -44, z: 44, w: 14, d: 14, h: 15, type: 'residential' },
+      { x: -68, z: 44, w: 18, d: 16, h: 16, type: 'hyuga' },
+      { x: -94, z: 44, w: 18, d: 16, h: 14, type: 'residential' },
+      { x: -114, z: 44, w: 14, d: 14, h: 10, type: 'residential' },
+
+      // Row 4 (z = 70): Clan Dojos & South-West Keep
+      { x: -55, z: 70, w: 18, d: 14, h: 13, type: 'dojo' },
+      { x: -85, z: 70, w: 16, d: 14, h: 12, type: 'residential' },
+      { x: -110, z: 70, w: 14, d: 12, h: 10, type: 'residential' },
+
+      // -------------------------------------------------------------
+      // NORTH DISTRICT: Hokage Mountain Promenade & Administration
+      // -------------------------------------------------------------
+      { x: -36, z: -52, w: 18, d: 16, h: 16, type: 'anbu' },
+      { x: -64, z: -52, w: 18, d: 16, h: 14, type: 'residential' },
+      { x: -92, z: -52, w: 16, d: 14, h: 12, type: 'residential' },
+      { x: -114, z: -52, w: 14, d: 14, h: 10, type: 'residential' },
+
+      { x: 36, z: -52, w: 18, d: 16, h: 17, type: 'council' },
+      { x: 64, z: -52, w: 18, d: 16, h: 14, type: 'residential' },
+      { x: 92, z: -52, w: 16, d: 14, h: 12, type: 'residential' },
+      { x: 114, z: -52, w: 14, d: 14, h: 10, type: 'residential' }
     ];
 
     plots.forEach((p, idx) => {
@@ -424,15 +1425,44 @@ export class KonohaCity {
 
       const wallMat = createToonMaterial(wallTones[idx % wallTones.length]);
       const roofMat = createToonMaterial(roofTones[idx % roofTones.length]);
-      const woodMat = createToonMaterial(0x4e342e);
+      const timberMat = createToonMaterial(0x3e2723, {
+        polygonOffset: true,
+        polygonOffsetFactor: -1.0,
+        polygonOffsetUnits: -4.0
+      }); // Dark timber beams with polygonOffset depth priority
+      const woodTrimMat = createToonMaterial(0x5d4037);
       const glassMat = createToonMaterial(0x90caf9, { roughness: 0.2 });
+      const redMat = createToonMaterial(0xb71c1c);
+      const whiteMat = createToonMaterial(0xffffff);
 
-      // Main Building Body
+      // 1. Main Building Body
       const body = new THREE.Mesh(new THREE.BoxGeometry(p.w, p.h, p.d), wallMat);
       body.position.y = p.h / 2;
       bGroup.add(body);
 
-      // Traditional Japanese Tiered Hip-and-Gable Roof
+      // 2. 3D Timber Framework: 4 Vertical Corner Beams
+      // Physically protrude outward from wall planes to eliminate Z-fighting noise completely
+      const colW = 0.58;
+      const colProtrude = 0.08; // 8cm protrusion past building wall surfaces
+      for (let signX of [-1, 1]) {
+        for (let signZ of [-1, 1]) {
+          const cx = signX * (p.w / 2 + colProtrude - colW / 2);
+          const cz = signZ * (p.d / 2 + colProtrude - colW / 2);
+          const col = new THREE.Mesh(new THREE.BoxGeometry(colW, p.h + 0.04, colW), timberMat);
+          col.position.set(cx, p.h / 2, cz);
+          bGroup.add(col);
+        }
+      }
+
+      // Horizontal Floor Dividers (Timber trims wrapping around exterior walls with positive depth margin)
+      const floors = Math.max(1, Math.floor(p.h / 3.8));
+      for (let f = 1; f < floors; f++) {
+        const hBeam1 = new THREE.Mesh(new THREE.BoxGeometry(p.w + 0.24, 0.28, p.d + 0.24), timberMat);
+        hBeam1.position.y = f * 3.8;
+        bGroup.add(hBeam1);
+      }
+
+      // 3. Traditional Japanese Tiered Hip-and-Gable Roof (Irimoya-zukuri)
       const roofPeakH = 3.2;
       const roofGeo = new THREE.ConeGeometry(Math.max(p.w, p.d) * 0.74, roofPeakH, 4);
       roofGeo.rotateY(Math.PI / 4);
@@ -440,40 +1470,144 @@ export class KonohaCity {
       roof.position.y = p.h + roofPeakH / 2;
       roof.scale.set(p.w / Math.max(p.w, p.d) * 1.16, 1.0, p.d / Math.max(p.w, p.d) * 1.16);
 
-      const eave = new THREE.Mesh(new THREE.BoxGeometry(p.w + 1.2, 0.35, p.d + 1.2), woodMat);
+      // Overhang Eaves
+      const eave = new THREE.Mesh(new THREE.BoxGeometry(p.w + 1.2, 0.35, p.d + 1.2), timberMat);
       eave.position.y = p.h + 0.18;
       bGroup.add(roof, eave);
 
-      // Balconies & Exterior Walkways on Multi-Story Buildings
+      // Ridge Cap (Ornamental top finial)
+      const ridge = new THREE.Mesh(new THREE.BoxGeometry(p.w * 0.5, 0.28, 0.4), timberMat);
+      ridge.position.y = p.h + roofPeakH;
+      bGroup.add(ridge);
+
+      // 4. Balconies & Exterior Walkways on Multi-Story Buildings
       if (p.h >= 12) {
         const balcGeo = new THREE.BoxGeometry(p.w + 0.6, 0.25, 2.0);
-        const balc = new THREE.Mesh(balcGeo, woodMat);
+        const balc = new THREE.Mesh(balcGeo, woodTrimMat);
         balc.position.set(0, 7.5, p.d / 2 + 1.0);
 
-        const rail = new THREE.Mesh(new THREE.BoxGeometry(p.w + 0.6, 0.85, 0.15), woodMat);
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(p.w + 0.6, 0.85, 0.15), timberMat);
         rail.position.set(0, 8.0, p.d / 2 + 1.95);
         bGroup.add(balc, rail);
+
+        // Decorative paper lantern under balcony
+        const bLantern = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.5, 8), createToonMaterial(0xff3d00));
+        bLantern.position.set(p.w * 0.35, 6.8, p.d / 2 + 0.8);
+        bGroup.add(bLantern);
       }
 
-      // Windows Grid
-      const floors = Math.floor(p.h / 4);
+      // 5. Windows Grid with Shoji Lattices
       for (let f = 1; f <= floors; f++) {
-        const win1 = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.4, 0.1), glassMat);
-        win1.position.set(-p.w * 0.24, f * 3.8 - 1.2, p.d / 2 + 0.06);
-        const win2 = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.4, 0.1), glassMat);
-        win2.position.set(p.w * 0.24, f * 3.8 - 1.2, p.d / 2 + 0.06);
-        bGroup.add(win1, win2);
+        for (let side of [-p.w * 0.26, p.w * 0.26]) {
+          const winFrame = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.5, 0.16), timberMat);
+          winFrame.position.set(side, f * 3.8 - 1.2, p.d / 2 + 0.08);
+          const winGlass = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.2, 0.12), glassMat);
+          winGlass.position.set(side, f * 3.8 - 1.2, p.d / 2 + 0.09);
+
+          // Shoji cross grilles
+          const grilleH = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.06, 0.16), timberMat);
+          grilleH.position.set(side, f * 3.8 - 1.2, p.d / 2 + 0.11);
+          const grilleV = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.2, 0.16), timberMat);
+          grilleV.position.set(side, f * 3.8 - 1.2, p.d / 2 + 0.11);
+
+          bGroup.add(winFrame, winGlass, grilleH, grilleV);
+        }
       }
 
-      // Rooftop Parkour Props (Water Tanks, Chimneys, Antennas)
-      if (idx % 2 === 0) {
-        const tank = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 2.2, 16), createToonMaterial(0x78909c));
+      // 6. Ground-Floor Sliding Entrance Door & Stone Step
+      const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.6, 0.22), timberMat);
+      doorFrame.position.set(0, 1.3, p.d / 2 + 0.08);
+      const doorLeaf1 = new THREE.Mesh(new THREE.BoxGeometry(0.95, 2.3, 0.08), woodTrimMat);
+      doorLeaf1.position.set(-0.48, 1.25, p.d / 2 + 0.13);
+      const doorLeaf2 = new THREE.Mesh(new THREE.BoxGeometry(0.95, 2.3, 0.08), woodTrimMat);
+      doorLeaf2.position.set(0.48, 1.25, p.d / 2 + 0.13);
+      const doorStep = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.2, 0.8), createToonMaterial(0x78909c));
+      doorStep.position.set(0, 0.1, p.d / 2 + 0.45);
+      bGroup.add(doorFrame, doorLeaf1, doorLeaf2, doorStep);
+
+      // 7. Thematic Architectural Customizations
+      if (p.type === 'uchiha') {
+        // Uchiha Clan Crest on Gable
+        const fanWhite = new THREE.Mesh(new THREE.CircleGeometry(0.7, 16, 0, Math.PI), whiteMat);
+        fanWhite.position.set(0, p.h + 1.2, p.d / 2 + 0.3);
+        const fanRed = new THREE.Mesh(new THREE.CircleGeometry(0.7, 16, Math.PI, Math.PI), redMat);
+        fanRed.position.set(0, p.h + 1.2, p.d / 2 + 0.31);
+        const fanHandle = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.5, 0.04), whiteMat);
+        fanHandle.position.set(0, p.h + 0.4, p.d / 2 + 0.32);
+        bGroup.add(fanWhite, fanRed, fanHandle);
+
+      } else if (p.type === 'dango') {
+        // Dango Shop: Colorful Awning & Outdoor Bench
+        const awning = new THREE.Mesh(new THREE.BoxGeometry(p.w * 0.7, 0.15, 1.8), createToonMaterial(0xef5350));
+        awning.position.set(0, 3.2, p.d / 2 + 0.9);
+        awning.rotation.x = 0.15;
+        // Outdoor Wooden Bench
+        const bench = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.5, 0.7), timberMat);
+        bench.position.set(p.w * 0.25, 0.25, p.d / 2 + 1.4);
+        bGroup.add(awning, bench);
+
+      } else if (p.type === 'hospital') {
+        // Medical Hospital Green Cross Emblem
+        const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.6, 0.08), createToonMaterial(0x00e676));
+        crossV.position.set(0, p.h * 0.75, p.d / 2 + 0.12);
+        const crossH = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.5, 0.08), createToonMaterial(0x00e676));
+        crossH.position.set(0, p.h * 0.75, p.d / 2 + 0.13);
+        bGroup.add(crossV, crossH);
+
+      } else if (p.type === 'academy') {
+        // Ninja Academy Rooftop Bell / Clock Tower
+        const towerMat = createToonMaterial(0xb71c1c);
+        const aTower = new THREE.Mesh(new THREE.BoxGeometry(6, 6, 6), towerMat);
+        aTower.position.y = p.h + roofPeakH + 3.0;
+        const aRoof = new THREE.Mesh(new THREE.ConeGeometry(5, 2.5, 4), roofMat);
+        aRoof.rotation.y = Math.PI / 4;
+        aRoof.position.y = p.h + roofPeakH + 7.25;
+        // Clock disc
+        const clock = new THREE.Mesh(new THREE.CircleGeometry(1.2, 16), whiteMat);
+        clock.position.set(0, p.h + roofPeakH + 3.0, 3.05);
+        bGroup.add(aTower, aRoof, clock);
+
+      } else if (p.type === 'flowershop') {
+        // Yamanaka Flower Shop: Green Awning & Flower Planters
+        const awning = new THREE.Mesh(new THREE.BoxGeometry(6.5, 0.15, 1.6), createToonMaterial(0x43a047));
+        awning.position.set(0, 3.0, p.d / 2 + 0.8);
+        awning.rotation.x = 0.15;
+        const planter = new THREE.Mesh(new THREE.BoxGeometry(5.5, 0.4, 0.6), woodTrimMat);
+        planter.position.set(0, 0.2, p.d / 2 + 1.2);
+        // Colorful blossoms
+        for (let fl = -2.2; fl <= 2.2; fl += 0.55) {
+          const flower = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), createToonMaterial(fl % 2 === 0 ? 0xff4081 : 0xffeb3b));
+          flower.position.set(fl, 0.45, p.d / 2 + 1.2);
+          bGroup.add(flower);
+        }
+        bGroup.add(awning, planter);
+
+      } else if (p.type === 'anbu') {
+        // Anbu Mask Shield Badge on front
+        const anbuBadge = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.1, 16), whiteMat);
+        anbuBadge.rotation.x = Math.PI / 2;
+        anbuBadge.position.set(0, p.h * 0.72, p.d / 2 + 0.12);
+        const anbuSymbol = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.6, 16), redMat);
+        anbuSymbol.position.set(0, p.h * 0.72, p.d / 2 + 0.18);
+        bGroup.add(anbuBadge, anbuSymbol);
+      }
+
+      // 8. Rooftop Parkour Props (Water Tanks, Chimneys, Antennas)
+      if (idx % 3 === 0) {
+        // Water Tank on timber stilts
+        const tank = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 2.2, 16), createToonMaterial(0x78909c));
         tank.position.set(p.w * 0.22, p.h + 1.1, p.d * 0.22);
         bGroup.add(tank);
-      } else {
-        const vent = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.4, 1.2), woodMat);
-        vent.position.set(-p.w * 0.25, p.h + 0.7, 0);
+      } else if (idx % 3 === 1) {
+        // Brick Chimney
+        const vent = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.6, 1.2), createToonMaterial(0x8d6e63));
+        vent.position.set(-p.w * 0.25, p.h + 0.8, 0);
         bGroup.add(vent);
+      } else {
+        // Metal Antenna
+        const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 3.5, 6), createToonMaterial(0x37474f));
+        antenna.position.set(p.w * 0.25, p.h + 1.75, -p.d * 0.2);
+        bGroup.add(antenna);
       }
 
       this.scene.add(bGroup);
@@ -486,12 +1620,19 @@ export class KonohaCity {
       );
     });
 
-    // Rooftop Ninja Walkway Bridges connecting adjacent buildings!
-    this.buildRooftopBridge(20, 38, -8, -8, 12);
-    this.buildRooftopBridge(38, 58, -8, -8, 14);
-    this.buildRooftopBridge(34, 54, 18, 18, 14);
-    this.buildRooftopBridge(20, 38, 42, 42, 13);
-    this.buildRooftopBridge(-58, -58, -8, 18, 14);
+    // Rooftop Ninja Walkway Bridges connecting adjacent buildings for parkour!
+    this.buildRooftopBridge(20, 38, -10, -10, 12);
+    this.buildRooftopBridge(38, 60, -10, -10, 14);
+    this.buildRooftopBridge(60, 84, -10, -10, 14);
+    this.buildRooftopBridge(38, 60, 18, 18, 15);
+    this.buildRooftopBridge(60, 84, 18, 18, 14);
+    this.buildRooftopBridge(20, 38, 44, 44, 13);
+    this.buildRooftopBridge(38, 60, 44, 44, 15);
+    this.buildRooftopBridge(-64, -94, -10, -10, 14);
+    this.buildRooftopBridge(-68, -94, 18, 18, 15);
+    this.buildRooftopBridge(-44, -68, 44, 44, 15);
+    this.buildRooftopBridge(36, 64, -52, -52, 14);
+    this.buildRooftopBridge(-36, -64, -52, -52, 14);
   }
 
   buildRooftopBridge(x1, x2, z1, z2, height) {
@@ -618,14 +1759,15 @@ export class KonohaCity {
   }
 
   buildSky() {
-    const skyGeo = new THREE.SphereGeometry(620, 32, 16);
+    const skyGeo = new THREE.SphereGeometry(680, 32, 16);
     const skyMat = new THREE.MeshBasicMaterial({
-      color: 0x4fa3f7,
-      side: THREE.BackSide
+      color: 0x64b5f6,
+      side: THREE.BackSide,
+      fog: false
     });
-    const skyMesh = new THREE.Mesh(skyGeo, skyMat);
-    skyMesh.position.set(0, 0, 120);
-    this.scene.add(skyMesh);
+    this.skyMesh = new THREE.Mesh(skyGeo, skyMat);
+    this.skyMesh.position.set(0, 0, 120);
+    this.scene.add(this.skyMesh);
 
     const cloudMat = new THREE.MeshToonMaterial({
       color: 0xffffff,
@@ -1144,7 +2286,7 @@ export class KonohaCity {
     const riverGroup = new THREE.Group();
 
     const rockMat = createToonMaterial(0x546e7a, { roughness: 0.75 });
-    const waterMat = createToonMaterial(0x0288d1, { roughness: 0.1, transparent: true, opacity: 0.82 });
+    const waterMat = createAnimeWaterMaterial();
     const foamMat = new THREE.MeshBasicMaterial({ color: 0xe0f7fa, transparent: true, opacity: 0.9 });
     const ropeMat = createToonMaterial(0xd7ccc8);
     const woodMat = createToonMaterial(0x8d6e63);
@@ -1523,7 +2665,11 @@ export class KonohaCity {
     return pos;
   }
 
-  update(dt) {
+  update(dt, camera = null) {
+    if (camera && this.skyMesh) {
+      this.skyMesh.position.copy(camera.position);
+    }
+
     this.clouds.forEach(c => {
       c.position.x += 1.8 * dt;
       if (c.position.x > 250) c.position.x = -250;
@@ -1536,6 +2682,51 @@ export class KonohaCity {
     }
     if (this.chakraCrystal) {
       this.chakraCrystal.rotation.y += 0.8 * dt;
+    }
+
+    // Merchant NPC Idle & Greeting Animation
+    if (this.merchantTorso) {
+      const time = performance.now() * 0.003;
+      // Gentle breathing
+      this.merchantTorso.position.y = 1.1 + Math.sin(time * 2.2) * 0.02;
+      if (this.merchantHead) {
+        this.merchantHead.rotation.y = Math.sin(time * 1.2) * 0.12;
+      }
+      if (this.merchantRArm) {
+        // Welcoming greeting wave
+        this.merchantRArm.rotation.x = -1.2 + Math.sin(time * 3.5) * 0.25;
+        this.merchantRArm.rotation.z = -0.5 + Math.sin(time * 4.0) * 0.2;
+      }
+    }
+
+    // Kakashi Hatake NPC Idle & Floating Quest Icon Animation
+    if (this.kakashiTorso) {
+      const time = performance.now() * 0.003;
+      this.kakashiTorso.position.y = 1.15 + Math.sin(time * 2.0) * 0.015;
+      if (this.kakashiHead) {
+        this.kakashiHead.rotation.y = Math.sin(time * 0.9) * 0.08;
+      }
+      if (this.kakashiRArm) {
+        // Reading signature book / subtle tilt
+        this.kakashiRArm.rotation.x = 0.85 + Math.sin(time * 1.5) * 0.05;
+      }
+      if (this.kakashiQuestIcon) {
+        this.kakashiQuestIcon.position.y = 2.75 + Math.sin(time * 3.5) * 0.12;
+        this.kakashiQuestIcon.rotation.y += 0.03;
+      }
+    }
+
+    // Atmospheric Waterfall Spray & Sacred Forest Fireflies
+    if (this.vfx) {
+      if (Math.random() < 0.38 && this.waterfallPos) {
+        this.vfx.spawnWaterfallMist(this.waterfallPos, 2);
+      }
+      if (Math.random() < 0.12 && this.toriiPos) {
+        this.vfx.spawnForestFireflies(this.toriiPos, 2);
+      }
+      if (Math.random() < 0.16 && this.chakraSpringPos) {
+        this.vfx.spawnForestFireflies(this.chakraSpringPos, 2);
+      }
     }
   }
 }
