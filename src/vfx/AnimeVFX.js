@@ -370,7 +370,9 @@ export class AnimeVFX {
       color: isHeavy ? 0xff1744 : 0xffea00,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.9
+      opacity: 0.9,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
     });
     const ring = new THREE.Mesh(ringGeo, ringMat);
     ring.position.copy(pos);
@@ -1121,6 +1123,237 @@ export class AnimeVFX {
       this.particles.push(new Particle(spark, vel, 0.22, 0.22, (sp, sdt) => {
         sp.mesh.position.addScaledVector(sp.velocity, sdt);
         sp.mesh.scale.setScalar(sp.life / sp.maxLife);
+      }));
+    }
+  }
+
+  // Authentic Anime Taijutsu Martial Arts Strike VFX (Dynamic Air Shockwaves, Kinetic Swipe Arcs, Comic Rays)
+  spawnTaijutsuStrikeVFX(strikePos, forwardDir, comboStep = 1, isFinisher = false, isKyuubi = false) {
+    const pos = strikePos.clone();
+    const dir = (forwardDir && forwardDir.lengthSq() > 0.001) ? forwardDir.clone().normalize() : new THREE.Vector3(0, 0, 1);
+
+    // Dynamic color styling per combo step
+    let themeColor = 0x00e5ff; // Default cyan wind
+    let sweepAngle = Math.PI * 0.75;
+    let swipeTiltZ = 0.2;
+    let swipeTiltX = 0.1;
+    let shockwaveScale = 1.0;
+
+    if (isKyuubi) {
+      themeColor = isFinisher ? 0xff1744 : 0xff6d00; // Demonic Vermilion / Burning Kurama Orange
+      shockwaveScale = 2.2;
+    } else if (comboStep === 1) {
+      themeColor = 0x40c4ff; // Swift light cyan jab
+      sweepAngle = Math.PI * 0.55;
+      swipeTiltZ = 0.25;
+      shockwaveScale = 0.95;
+    } else if (comboStep === 2) {
+      themeColor = 0xffea00; // Radiant solar gold cross hook
+      sweepAngle = Math.PI * 0.85;
+      swipeTiltZ = -0.35;
+      swipeTiltX = 0.2;
+      shockwaveScale = 1.05;
+    } else if (comboStep === 3) {
+      themeColor = 0xff9100; // Heavy amber gut punch
+      sweepAngle = Math.PI * 0.65;
+      swipeTiltZ = 0.05;
+      swipeTiltX = -0.15;
+      shockwaveScale = 1.2;
+    } else if (comboStep === 4) {
+      themeColor = 0x00f0ff; // Azure whirlwind high roundhouse kick
+      sweepAngle = Math.PI * 1.1;
+      swipeTiltZ = 1.25;
+      swipeTiltX = 0.25;
+      shockwaveScale = 1.35;
+    } else if (comboStep === 5 || isFinisher) {
+      themeColor = 0xff1744; // Fiery crimson finisher impact
+      sweepAngle = Math.PI * 1.5;
+      swipeTiltZ = -0.8;
+      swipeTiltX = 0.35;
+      shockwaveScale = 1.6;
+    } else if (comboStep === 'RUN_1') {
+      themeColor = 0x00e5ff; // Shinobi low slide sweep
+      sweepAngle = Math.PI * 1.2;
+      swipeTiltZ = 0.05;
+      swipeTiltX = Math.PI / 2.2; // Lie near horizontal
+      shockwaveScale = 1.25;
+    } else if (comboStep === 'RUN_2') {
+      themeColor = 0xff9100; // Flying dropkick
+      sweepAngle = Math.PI * 0.9;
+      swipeTiltZ = -0.25;
+      swipeTiltX = -0.3;
+      shockwaveScale = 1.45;
+    } else if (comboStep === 'RUN_3') {
+      themeColor = 0x00ffff; // High-speed chakra palm drive
+      sweepAngle = Math.PI * 1.3;
+      swipeTiltZ = 0.0;
+      swipeTiltX = 0.0;
+      shockwaveScale = 1.55;
+    }
+
+    // 1. Sonic Air Compression Shockwave (Ring aligned along punch/kick direction)
+    const sonicGroup = new THREE.Group();
+    sonicGroup.position.copy(pos);
+    sonicGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+
+    const outerR = 0.55 * shockwaveScale;
+    const innerR = 0.22 * shockwaveScale;
+
+    // Outer colored shockwave ring
+    const sonicGeo = new THREE.RingGeometry(innerR, outerR, 32);
+    const sonicMat = new THREE.MeshBasicMaterial({
+      color: themeColor,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const sonicMesh = new THREE.Mesh(sonicGeo, sonicMat);
+
+    // Razor-hot white inner rim
+    const coreSonicGeo = new THREE.RingGeometry(innerR, innerR + 0.08 * shockwaveScale, 32);
+    const coreSonicMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.98,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const coreSonicMesh = new THREE.Mesh(coreSonicGeo, coreSonicMat);
+    coreSonicMesh.position.z = 0.01;
+
+    sonicGroup.add(sonicMesh, coreSonicMesh);
+    this.scene.add(sonicGroup);
+
+    const sonicLife = 0.22;
+    const sonicForwardSpeed = 5.5;
+    this.particles.push(new Particle(sonicGroup, dir.clone().multiplyScalar(sonicForwardSpeed), sonicLife, sonicLife, (p, dt) => {
+      p.mesh.position.addScaledVector(p.velocity, dt);
+      p.velocity.multiplyScalar(0.85);
+      const prog = 1.0 - (p.life / p.maxLife);
+      const scale = 1.0 + prog * 2.6;
+      p.mesh.scale.set(scale, scale, scale);
+      const fade = Math.pow(p.life / p.maxLife, 1.4);
+      sonicMat.opacity = fade * 0.95;
+      coreSonicMat.opacity = fade * 0.98;
+    }));
+
+    // 2. Kinetic Taijutsu Swipe Arc (Fluid Dynamic Crescent in World Space, NOT glued to player body!)
+    if (sweepAngle > 0.5) {
+      const arcGroup = new THREE.Group();
+      arcGroup.position.copy(pos);
+      arcGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+      arcGroup.rotateZ(swipeTiltZ);
+      arcGroup.rotateX(swipeTiltX);
+
+      const arcInnerR = 0.55 * shockwaveScale;
+      const arcOuterR = 0.95 * shockwaveScale;
+      const arcGeo = new THREE.RingGeometry(arcInnerR, arcOuterR, 32, 1, -sweepAngle / 2, sweepAngle);
+      const arcMat = new THREE.MeshBasicMaterial({
+        color: themeColor,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.92,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const arcMesh = new THREE.Mesh(arcGeo, arcMat);
+
+      const arcCoreGeo = new THREE.RingGeometry(arcOuterR - 0.08 * shockwaveScale, arcOuterR, 32, 1, -sweepAngle / 2 + 0.04, sweepAngle - 0.08);
+      const arcCoreMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.98,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const arcCoreMesh = new THREE.Mesh(arcCoreGeo, arcCoreMat);
+      arcCoreMesh.position.z = 0.008;
+
+      arcGroup.add(arcMesh, arcCoreMesh);
+      this.scene.add(arcGroup);
+
+      const arcLife = 0.20;
+      this.particles.push(new Particle(arcGroup, new THREE.Vector3(), arcLife, arcLife, (p, dt) => {
+        const prog = 1.0 - (p.life / p.maxLife);
+        const s = 1.0 + prog * 0.45;
+        p.mesh.scale.set(s, s, s);
+        arcGroup.rotateZ(3.2 * dt);
+        const fade = Math.pow(p.life / p.maxLife, 1.3);
+        arcMat.opacity = fade * 0.92;
+        arcCoreMat.opacity = fade * 0.98;
+      }));
+    }
+
+    // 3. Directional High-Speed Comic Strike Needles / Speed Rays
+    const rayCount = isFinisher ? 10 : 6;
+    for (let i = 0; i < rayCount; i++) {
+      const rayLen = (0.28 + Math.random() * 0.32) * shockwaveScale;
+      const rayGeo = new THREE.ConeGeometry(0.025 * shockwaveScale, rayLen, 4);
+      rayGeo.rotateX(Math.PI / 2);
+      const rayMat = new THREE.MeshBasicMaterial({
+        color: (i % 2 === 0) ? 0xffffff : themeColor,
+        transparent: true,
+        opacity: 0.95,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const rayMesh = new THREE.Mesh(rayGeo, rayMat);
+      rayMesh.position.copy(pos);
+
+      // Distribute in forward cone along dir
+      const spread = 0.7;
+      const rayDir = dir.clone().add(new THREE.Vector3(
+        (Math.random() - 0.5) * spread,
+        (Math.random() - 0.5) * spread,
+        (Math.random() - 0.5) * spread
+      )).normalize();
+
+      rayMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), rayDir);
+      this.scene.add(rayMesh);
+
+      const raySpeed = (9.0 + Math.random() * 8.0) * (isFinisher ? 1.3 : 1.0);
+      const rayVel = rayDir.clone().multiplyScalar(raySpeed);
+      const rayLife = 0.16 + Math.random() * 0.08;
+
+      this.particles.push(new Particle(rayMesh, rayVel, rayLife, rayLife, (p, dt) => {
+        p.mesh.position.addScaledVector(p.velocity, dt);
+        p.velocity.multiplyScalar(0.88);
+        const prog = p.life / p.maxLife;
+        p.mesh.scale.set(prog * 0.8, prog * 0.8, prog * 1.4);
+        rayMat.opacity = prog * 0.95;
+      }));
+    }
+
+    // 4. Finisher Ground Shockwave & Dynamic Screen Impact
+    if (isFinisher) {
+      this.triggerScreenShake(0.22, 0.22);
+      this.setSpeedLines(0.60);
+      setTimeout(() => this.setSpeedLines(0), 120);
+
+      // Expanding ground shockwave disc
+      const groundRingGeo = new THREE.RingGeometry(0.25 * shockwaveScale, 0.75 * shockwaveScale, 32);
+      groundRingGeo.rotateX(-Math.PI / 2);
+      const groundRingMat = new THREE.MeshBasicMaterial({
+        color: themeColor,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.95,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const groundRing = new THREE.Mesh(groundRingGeo, groundRingMat);
+      groundRing.position.copy(pos).setY(pos.y - 0.7);
+      this.scene.add(groundRing);
+
+      this.particles.push(new Particle(groundRing, new THREE.Vector3(), 0.28, 0.28, (p, dt) => {
+        const prog = 1.0 - (p.life / p.maxLife);
+        const s = 1.0 + prog * 4.2;
+        p.mesh.scale.set(s, s, s);
+        groundRingMat.opacity = Math.pow(p.life / p.maxLife, 1.5) * 0.95;
       }));
     }
   }

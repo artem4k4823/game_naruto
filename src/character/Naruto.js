@@ -117,6 +117,23 @@ export class Naruto {
     this.winTimer = 0;
     this.attackTriggered = false;
     this.jumpFlipTriggered = false;
+    this.airborneBlend = 0;
+    this.skeletonBones = {
+      hips: null,
+      spine: null,
+      spine1: null,
+      head: null,
+      leftUpLeg: null,
+      rightUpLeg: null,
+      leftLeg: null,
+      rightLeg: null,
+      leftFoot: null,
+      rightFoot: null,
+      leftArm: null,
+      rightArm: null,
+      leftForeArm: null,
+      rightForeArm: null
+    };
     this.rWeaponBone = null;
     this.rHandBone = null;
     this.spineBone = null;
@@ -319,19 +336,36 @@ export class Naruto {
         }
       }
       if (child.name) {
-        if (!this.rWeaponBone && (child.name === 'R_Hand_Weapon_cnt_tr_0159' || child.name.includes('R_Hand_Weapon'))) {
+        const cn = child.name;
+        if (!this.rWeaponBone && (cn === 'R_Hand_Weapon_cnt_tr_0159' || cn.includes('R_Hand_Weapon'))) {
           this.rWeaponBone = child;
-        } else if (!this.rHandBone && child.name.includes('RightHand')) {
+        } else if (!this.rHandBone && cn.includes('RightHand')) {
           this.rHandBone = child;
-        } else if (!this.spineBone && (child.name.includes('Spine_05') || child.name.includes('Spine1') || child.name.includes('Hips'))) {
+        } else if (!this.spineBone && (cn.includes('Spine_05') || cn.includes('Spine1') || cn.includes('Hips'))) {
           this.spineBone = child;
-        } else if (!this.lFootBone && (child.name.includes('LeftFoot') || child.name.includes('LeftToe'))) {
+        } else if (!this.lFootBone && (cn.includes('LeftFoot') || cn.includes('LeftToe'))) {
           this.lFootBone = child;
-        } else if (!this.rFootBone && (child.name.includes('RightFoot') || child.name.includes('RightToe'))) {
+        } else if (!this.rFootBone && (cn.includes('RightFoot') || cn.includes('RightToe'))) {
           this.rFootBone = child;
-        } else if (!this.headBone && child.name.includes('Head')) {
+        } else if (!this.headBone && cn.includes('Head')) {
           this.headBone = child;
         }
+
+        // Map skeletal bones for authentic airborne leaping & somersaults
+        if (cn === 'Hips_04') this.skeletonBones.hips = child;
+        else if (cn === 'Spine_05') this.skeletonBones.spine = child;
+        else if (cn === 'Spine1_06') this.skeletonBones.spine1 = child;
+        else if (cn === 'Head_011') this.skeletonBones.head = child;
+        else if (cn === 'LeftUpLeg_0176') this.skeletonBones.leftUpLeg = child;
+        else if (cn === 'RightUpLeg_0190') this.skeletonBones.rightUpLeg = child;
+        else if (cn === 'LeftLeg_0177') this.skeletonBones.leftLeg = child;
+        else if (cn === 'RightLeg_0191') this.skeletonBones.rightLeg = child;
+        else if (cn === 'LeftFoot_0178') this.skeletonBones.leftFoot = child;
+        else if (cn === 'RightFoot_0192') this.skeletonBones.rightFoot = child;
+        else if (cn === 'LeftArm_0109') this.skeletonBones.leftArm = child;
+        else if (cn === 'RightArm_0141') this.skeletonBones.rightArm = child;
+        else if (cn === 'LeftForeArm_0110') this.skeletonBones.leftForeArm = child;
+        else if (cn === 'RightForeArm_0142') this.skeletonBones.rightForeArm = child;
       }
     });
 
@@ -445,6 +479,9 @@ export class Naruto {
       this.currentNarutoAction = 'idle';
     }
 
+    // Set rotation pivot around character center of mass (~0.68m) for realistic somersaults
+    this.narutoAnimatedScene.position.y = -0.68;
+    this.narutoAnimatedGroup.position.y = 0.68;
     this.narutoAnimatedGroup.add(this.narutoAnimatedScene);
     this.group.add(this.narutoAnimatedGroup);
     this.isNarutoAnimatedLoaded = true;
@@ -563,28 +600,32 @@ export class Naruto {
 
     // 4. In-air Jump & Somersault (Frontflip)
     if (!this.isGrounded && !this.isWallRunning) {
+      this.airborneBlend = THREE.MathUtils.damp(this.airborneBlend, 1.0, 16, dt);
+      const horizSpeed = Math.hypot(this.velocity.x, this.velocity.z);
+
       if (this.doubleFlipTimer > 0) {
-        if (this.jumpFlipTriggered) {
-          this.playNarutoAction('kick2', 0.06, true);
-          this.jumpFlipTriggered = false;
-        } else {
-          this.playNarutoAction('kick2', 0.06, false);
+        // Double jump somersault frontflip (tight ninja ball curl + 360° spin)
+        const p = 1.0 - this.doubleFlipTimer / 0.48;
+        this.playNarutoAction('run', 0.10);
+        if (this.narutoActions['run']) {
+          this.narutoActions['run'].timeScale = 0.35;
         }
-        if (this.narutoActions['kick2']) {
-          this.narutoActions['kick2'].timeScale = 2.0;
-        }
+        this.applySomersaultPose(p);
       } else {
-        if (this.jumpFlipTriggered) {
-          this.playNarutoAction('kick2', 0.12, true);
-          this.jumpFlipTriggered = false;
+        // Normal jump & airborne flight / fall
+        if (horizSpeed > 1.5) {
+          this.playNarutoAction('run', 0.14);
+          if (this.narutoActions['run']) {
+            this.narutoActions['run'].timeScale = 0.35;
+          }
         } else {
-          this.playNarutoAction('kick2', 0.16, false);
+          this.playNarutoAction('idle', 0.18);
         }
-        if (this.narutoActions['kick2']) {
-          this.narutoActions['kick2'].timeScale = 1.0;
-        }
+        this.applyAirborneJumpPose(horizSpeed > 1.5, this.velocity.y, dt);
       }
       return;
+    } else {
+      this.airborneBlend = THREE.MathUtils.damp(this.airborneBlend, 0.0, 16, dt);
     }
 
     // 5. Wall-Running
@@ -612,6 +653,104 @@ export class Naruto {
       }
     } else {
       this.playNarutoAction('idle', 0.24);
+    }
+  }
+
+  applySomersaultPose(progress) {
+    const bones = this.skeletonBones;
+    if (!bones || !bones.leftUpLeg) return;
+
+    // Tuck envelope: fast entry (0 -> 0.18), tight ninja ball (0.18 -> 0.72), smooth unfold (0.72 -> 1.0)
+    let tuck = 0;
+    if (progress < 0.18) {
+      tuck = progress / 0.18;
+    } else if (progress < 0.72) {
+      tuck = 1.0;
+    } else {
+      tuck = Math.max(0, (1.0 - progress) / 0.28);
+    }
+    // Organic sinusoidal muscle ease
+    tuck = 0.5 - 0.5 * Math.cos(tuck * Math.PI);
+
+    // 1. Thighs pulled up tight against chest
+    if (bones.leftUpLeg) bones.leftUpLeg.rotateZ(1.35 * tuck);
+    if (bones.rightUpLeg) bones.rightUpLeg.rotateZ(1.35 * tuck);
+
+    // 2. Knees bent tightly into tuck ball
+    if (bones.leftLeg) bones.leftLeg.rotateZ(-1.25 * tuck);
+    if (bones.rightLeg) bones.rightLeg.rotateZ(-1.25 * tuck);
+
+    // 3. Spine curled forward into the somersault ball
+    if (bones.spine) bones.spine.rotateY(0.42 * tuck);
+    if (bones.spine1) bones.spine1.rotateY(0.38 * tuck);
+
+    // 4. Head tucked down toward knees
+    if (bones.head) bones.head.rotateZ(0.50 * tuck);
+
+    // 5. Arms curled in close to knees/shins (holding the tuck)
+    if (bones.leftArm) bones.leftArm.rotateZ(-0.45 * tuck);
+    if (bones.rightArm) bones.rightArm.rotateZ(-0.45 * tuck);
+    if (bones.leftForeArm) bones.leftForeArm.rotateZ(-0.65 * tuck);
+    if (bones.rightForeArm) bones.rightForeArm.rotateZ(-0.65 * tuck);
+  }
+
+  applyAirborneJumpPose(isMoving, vy, dt) {
+    const bones = this.skeletonBones;
+    if (!bones || !bones.leftUpLeg) return;
+
+    const blend = this.airborneBlend;
+    if (blend <= 0.01) return;
+
+    const isAscending = vy > 0.5;
+
+    if (isMoving) {
+      // Iconic Naruto ninja jump (arms back, chest forward, knees flexed)
+      if (isAscending) {
+        // Ascending leap: one knee lifted higher, body streamlined forward
+        if (bones.spine) bones.spine.rotateY(0.20 * blend);
+        if (bones.spine1) bones.spine1.rotateY(0.18 * blend);
+        if (bones.head) bones.head.rotateZ(-0.15 * blend);
+
+        // Thighs & knees: athletic leap pose
+        if (bones.leftUpLeg) bones.leftUpLeg.rotateZ(0.50 * blend);
+        if (bones.rightUpLeg) bones.rightUpLeg.rotateZ(0.22 * blend);
+        if (bones.leftLeg) bones.leftLeg.rotateZ(-0.75 * blend);
+        if (bones.rightLeg) bones.rightLeg.rotateZ(-0.55 * blend);
+
+        // Arms swept back trailing behind in the wind
+        if (bones.leftArm) bones.leftArm.rotateZ(-0.25 * blend);
+        if (bones.rightArm) bones.rightArm.rotateZ(-0.25 * blend);
+        if (bones.leftForeArm) bones.leftForeArm.rotateZ(0.25 * blend);
+        if (bones.rightForeArm) bones.rightForeArm.rotateZ(0.25 * blend);
+      } else {
+        // Descending / falling: preparing for touchdown
+        if (bones.spine) bones.spine.rotateY(0.12 * blend);
+        if (bones.spine1) bones.spine1.rotateY(0.10 * blend);
+        if (bones.head) bones.head.rotateZ(0.10 * blend);
+
+        // Legs flexed to absorb landing
+        if (bones.leftUpLeg) bones.leftUpLeg.rotateZ(0.30 * blend);
+        if (bones.rightUpLeg) bones.rightUpLeg.rotateZ(0.30 * blend);
+        if (bones.leftLeg) bones.leftLeg.rotateZ(-0.68 * blend);
+        if (bones.rightLeg) bones.rightLeg.rotateZ(-0.68 * blend);
+
+        // Arms spread slightly for balance
+        if (bones.leftArm) bones.leftArm.rotateZ(-0.15 * blend);
+        if (bones.rightArm) bones.rightArm.rotateZ(-0.15 * blend);
+        if (bones.leftForeArm) bones.leftForeArm.rotateZ(-0.10 * blend);
+        if (bones.rightForeArm) bones.rightForeArm.rotateZ(-0.10 * blend);
+      }
+    } else {
+      // Vertical / stationary jump
+      if (bones.leftUpLeg) bones.leftUpLeg.rotateZ(0.35 * blend);
+      if (bones.rightUpLeg) bones.rightUpLeg.rotateZ(0.35 * blend);
+      if (bones.leftLeg) bones.leftLeg.rotateZ(-0.65 * blend);
+      if (bones.rightLeg) bones.rightLeg.rotateZ(-0.65 * blend);
+
+      if (bones.leftArm) bones.leftArm.rotateZ(-0.20 * blend);
+      if (bones.rightArm) bones.rightArm.rotateZ(-0.20 * blend);
+      if (bones.leftForeArm) bones.leftForeArm.rotateZ(-0.30 * blend);
+      if (bones.rightForeArm) bones.rightForeArm.rotateZ(-0.30 * blend);
     }
   }
 
@@ -894,34 +1033,14 @@ export class Naruto {
   }
 
   buildSlashTrail() {
-    const trailGeo = new THREE.RingGeometry(0.6, 1.4, 24, 1, 0, Math.PI * 0.9);
-    const trailMat = new THREE.MeshBasicMaterial({
-      color: 0x00f0ff,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0
-    });
-    this.slashTrail = new THREE.Mesh(trailGeo, trailMat);
-    this.slashTrail.position.set(0, 1.2, 0.6);
-    this.slashTrail.rotation.x = Math.PI / 2;
-    this.group.add(this.slashTrail);
+    // Legacy local mesh removed. Authentic world-space Taijutsu & Kenjutsu effects handled dynamically by AnimeVFX.
   }
 
   showSlashTrail(color = 0x00f0ff, rotZ = 0) {
-    this.slashTrail.material.color.setHex(color);
-    this.slashTrail.rotation.z = rotZ;
-    this.slashTrail.material.opacity = 0.85;
-
-    let fade = 0.85;
-    const fadeTimer = setInterval(() => {
-      fade -= 0.15;
-      if (fade <= 0) {
-        this.slashTrail.material.opacity = 0;
-        clearInterval(fadeTimer);
-      } else {
-        this.slashTrail.material.opacity = fade;
-      }
-    }, 25);
+    if (this.vfx && this.vfx.spawnTaijutsuStrikeVFX) {
+      const forward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotationY);
+      this.vfx.spawnTaijutsuStrikeVFX(this.getAttackCenter(), forward, this.comboStep || 1, this.comboStep === 5, this.isKyuubiMode);
+    }
   }
 
   update(dt, input, cameraAngle, city) {
@@ -2491,7 +2610,9 @@ export class Naruto {
         this.velocity.x = forward.x * slideSpeed;
         this.velocity.z = forward.z * slideSpeed;
         this.vfx.spawnFootstepDust(this.position, 1.6);
-        this.showSlashTrail(0x00f0ff, 0.15);
+        if (this.vfx && this.vfx.spawnTaijutsuStrikeVFX) {
+          this.vfx.spawnTaijutsuStrikeVFX(this.getAttackCenter(), forward, 'RUN_1', false, this.isKyuubiMode);
+        }
         sound.playHit(false);
         hitDelay = 100;
         baseDmg = 85;
@@ -2506,7 +2627,9 @@ export class Naruto {
         this.velocity.y = 4.2;
         this.isGrounded = false;
         this.vfx.spawnFootstepDust(this.position, 1.4);
-        this.showSlashTrail(0xff9100, -0.25);
+        if (this.vfx && this.vfx.spawnTaijutsuStrikeVFX) {
+          this.vfx.spawnTaijutsuStrikeVFX(this.getAttackCenter(), forward, 'RUN_2', true, this.isKyuubiMode);
+        }
         sound.playHit(true);
         hitDelay = 140;
         baseDmg = 125;
@@ -2522,7 +2645,9 @@ export class Naruto {
         this.vfx.setSpeedLines(0.75);
         setTimeout(() => this.vfx.setSpeedLines(0), 220);
         this.vfx.spawnChakraAuraWisp(this.position, this.isKyuubiMode);
-        this.showSlashTrail(0x00e5ff, 1.25);
+        if (this.vfx && this.vfx.spawnTaijutsuStrikeVFX) {
+          this.vfx.spawnTaijutsuStrikeVFX(this.getAttackCenter(), forward, 'RUN_3', true, this.isKyuubiMode);
+        }
         sound.playHit(true);
         hitDelay = 120;
         baseDmg = 160;
@@ -2559,9 +2684,9 @@ export class Naruto {
       this.velocity.x = forward.x * stepPower;
       this.velocity.z = forward.z * stepPower;
 
-      const colors = [0x00f0ff, 0xffea00, 0xff9100, 0x00e5ff, 0xff1744];
-      const slashAngles = [0.2, -0.3, 0.0, 1.4, -1.2];
-      this.showSlashTrail(colors[this.comboStep - 1], slashAngles[this.comboStep - 1]);
+      if (this.vfx && this.vfx.spawnTaijutsuStrikeVFX) {
+        this.vfx.spawnTaijutsuStrikeVFX(this.getAttackCenter(), forward, this.comboStep, isFinisher, this.isKyuubiMode);
+      }
 
       const hitDelays = [75, 90, 130, 110, 240];
       setTimeout(() => {
